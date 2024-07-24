@@ -1,5 +1,20 @@
 local M = {}
 
+---Ternary operator.
+---
+---@generic T
+---@param cond boolean
+---@param t T
+---@param f T
+---@return T
+function M.ternary(cond, t, f)
+    if cond then
+        return t
+    else
+        return f
+    end
+end
+
 ---Cantor pairing function
 ---
 ---@param x integer

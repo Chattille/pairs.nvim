@@ -2,11 +2,8 @@ local M = {}
 
 ---Current global config.
 ---
----@type APConfig
-M.config = {}
-
----@type APConfig
-local default_config = {
+---@type APFullConfig
+M.config = {
     enabled = true,
     filetypes_excluded = { 'TelescopePrompt' },
     buftypes_excluded = {},
@@ -76,7 +73,7 @@ local function validate(config)
 end
 
 ---@param opts? APMappingConfig
----@return APMappingConfig
+---@return APMappingFullConfig
 local function get_full_mapping_conf(opts)
     if not opts then
         return {}
@@ -89,6 +86,7 @@ local function get_full_mapping_conf(opts)
             end
         end
     end
+    ---@diagnostic disable-next-line: return-type-mismatch
     return opts
 end
 
@@ -98,9 +96,10 @@ function M.configure(opts)
     validate(opts)
 
     -- convert to full mapping config
+    ---@type APMappingFullConfig
     opts.mapping = get_full_mapping_conf(opts.mapping)
 
-    M.config = vim.tbl_deep_extend('force', default_config, opts)
+    M.config = vim.tbl_deep_extend('force', M.config, opts)
 end
 
 return M

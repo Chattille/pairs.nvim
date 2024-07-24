@@ -1,5 +1,8 @@
 local C = require 'autopair.config'
-local ACTION = require('autopair.types').ACTION
+local T = require 'autopair.types'
+local U = require 'autopair.utils'
+
+local ACTION = T.ACTION
 
 local M = {}
 
@@ -71,82 +74,35 @@ end
 ---@param cond PairCond
 ---@param mode PairModeType
 ---@param atype PairActionType
----@param only_cmap? boolean Specified exclusively for cmap.
 ---@return PairFullCond
-local function get_full_mode_cond(cond, mode, atype, only_cmap)
-    ---@type boolean
-    local use_default = C.config.spec.enable_default_conditions
-
+local function get_mode_spec(cond, mode, atype)
+    local cf = C.config.spec
+    local use_default = cf.enable_default_conditions
+    local enable
     if mode == 'i' then
-        local enable
-        if atype == ACTION.space then
-            enable = C.config.spec.default_space
-        else
-            enable = true
+        enable = U.ternary(atype == ACTION.space, cf.default_space, true)
+    else
+        enable = U.ternary(
+            atype == ACTION.space,
+            cf.default_space and cf.default_cmap,
+            cf.default_cmap
+        )
+    end
+
+    if cond == nil then
+        return { enable = enable, default = use_default }
+    elseif type(cond) == 'boolean' then
+        return { enable = cond, default = use_default }
+    elseif type(cond) == 'function' then
+        return { cond, enable = true, default = use_default }
+    else -- table
+        if cond.enable == nil then
+            cond.enable = U.ternary(#cond == 0, enable, true)
         end
-
-        if cond == nil then
-            return { enable = enable, default = use_default }
-        elseif type(cond) == 'boolean' then
-            return { enable = cond, default = use_default }
-        elseif type(cond) == 'function' then
-            return { cond, enable = true, default = use_default }
-        else -- list
-            if cond.enable == nil then
-                if #cond == 0 then
-                    ---@cast enable -?
-                    cond.enable = enable
-                else
-                    cond.enable = true
-                end
-            end
-
-            if cond.default == nil then
-                cond.default = use_default
-            end
-
-            return cond
+        if cond.default == nil then
+            cond.default = use_default
         end
-    else -- cmdline
-        ---@type boolean
-        local use_cmap = C.config.spec.default_cmap
-        local enable
-        if atype == ACTION.space then
-            enable = C.config.spec.default_space and use_cmap
-        else
-            enable = use_cmap
-        end
-
-        if cond == nil then
-            return { enable = enable, default = use_default }
-        elseif type(cond) == 'boolean' then
-            return { enable = cond, default = use_default }
-        elseif type(cond) == 'function' then
-            if only_cmap or use_cmap then
-                return { cond, enable = true, default = use_default }
-            else
-                return { enable = false, default = use_default }
-            end
-        else -- list
-            if not only_cmap and not use_cmap then
-                return { enable = false, default = use_default }
-            end
-
-            if cond.enable == nil then
-                if #cond == 0 then
-                    ---@cast enable -?
-                    cond.enable = enable
-                else -- one or more conditions present for cmdline imply true
-                    cond.enable = true
-                end
-            end
-
-            if cond.default == nil then
-                cond.default = use_default
-            end
-
-            return cond
-        end
+        return cond
     end
 end
 
@@ -156,30 +112,23 @@ end
 local function get_full_action_spec(action, atype)
     if atype == ACTION.cr then
         ---@cast action PairCond
-        return get_full_mode_cond(action, 'i', atype)
+        return get_mode_spec(action, 'i', atype)
     end
 
     -- pair, close, and del
-    if type(action) ~= 'table' then
+    if type(action) ~= 'table' or (action.i == nil and action.c == nil) then
+        -- terminal types or action spec for both modes
         return {
-            i = get_full_mode_cond(action, 'i', atype),
-            c = get_full_mode_cond(action, 'c', atype),
+            ---@diagnostic disable-next-line: param-type-mismatch
+            i = get_mode_spec(action, 'i', atype),
+            ---@diagnostic disable-next-line: param-type-mismatch
+            c = get_mode_spec(action, 'c', atype),
         }
-    else -- list
-        if action.i == nil and action.c == nil then
-            -- action spec for both modes
-            return {
-                ---@diagnostic disable-next-line: param-type-mismatch
-                i = get_full_mode_cond(action, 'i', atype),
-                ---@diagnostic disable-next-line: param-type-mismatch
-                c = get_full_mode_cond(action, 'c', atype),
-            }
-        else -- action spec for separate modes
-            return {
-                i = get_full_mode_cond(action.i, 'i', atype),
-                c = get_full_mode_cond(action.c, 'c', atype, true),
-            }
-        end
+    else -- action spec for separate modes
+        return {
+            i = get_mode_spec(action.i, 'i', atype),
+            c = get_mode_spec(action.c, 'c', atype),
+        }
     end
 end
 

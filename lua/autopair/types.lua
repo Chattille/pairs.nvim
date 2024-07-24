@@ -47,6 +47,7 @@ return M
 ---@alias PairActionSpec PairCond|table<PairModeType, PairCond>
 ---@alias PairDelimiterSpec string|{ text: string, key: string? }
 ---@alias KeymapConfig boolean|table<PairModeType, boolean?>
+---@alias KeymapFullConfig table<PairModeType, boolean>
 ---@alias PairActionFullSpec table<PairModeType, PairFullCond>
 ---@alias PairFullCond { enable: boolean, default: boolean, [integer]: ActionCondition }
 ---@alias PairDelimiterFullSpec { text: string, key: string }
@@ -111,7 +112,8 @@ return M
 ---@field space? KeymapConfig
 
 ---@class APSpecConfig
----Set keymap for pair on cmdline by default. Default `false`.
+---Enable cmap by default for added pairs if the action is not configured.
+---Default `false`.
 ---@field default_cmap? boolean
 ---Enable space action when not specified. Default `false`.
 ---@field default_space? boolean
@@ -119,6 +121,39 @@ return M
 ---@field enable_default_conditions? boolean
 ---Enable default specs. Default `true`.
 ---@field enable_default_specs? boolean
+
+---@class APConditionConfig
+---Disable auto-pairing when the cursor is placed before the pattern.
+---@field ignore_pair_if_before? string
+
+---@class (exact) APFullConfig
+---@field enabled boolean
+---@field filetypes_excluded string[]
+---@field buftypes_excluded string[]
+---@field fastwrap APFastWrapFullConfig
+---@field mapping APMappingFullConfig
+---@field spec APSpecFullConfig
+---@field condition APConditionFullConfig
+
+---@class (exact) APFastWrapFullConfig
+---@field enable KeymapFullConfig
+
+---@class (exact) APMappingFullConfig
+---@field bs KeymapFullConfig
+---@field ch KeymapFullConfig
+---@field cr boolean
+---@field cu KeymapFullConfig
+---@field cw KeymapFullConfig
+---@field space KeymapFullConfig
+
+---@class (exact) APSpecFullConfig
+---@field default_cmap boolean
+---@field default_space boolean
+---@field enable_default_conditions boolean
+---@field enable_default_specs boolean
+
+---@class (exact) APConditionFullConfig
+---@field ignore_pair_if_before string
 
 ---Specifications to create auto pairs.
 ---
@@ -138,13 +173,13 @@ return M
 ---@field opener PairDelimiterFullSpec
 ---@field closer PairDelimiterFullSpec
 ---@field regex boolean
----@field filetype string[] Filetype(s) for the pair to be applied.
----@field nestable table<PairModeType, boolean> The pair can be nested.
----@field pair PairActionFullSpec Conditions for auto-pairing pairs.
----@field close PairActionFullSpec Conditions for auto-closing out of pairs.
----@field del PairActionFullSpec Conditions for auto-deleting pairs.
----@field cr PairFullCond Conditions for auto-indenting pairs.
----@field space PairActionFullSpec Conditions for auto-spacing pairs.
+---@field filetype string[]
+---@field nestable table<PairModeType, boolean>
+---@field pair PairActionFullSpec
+---@field close PairActionFullSpec
+---@field del PairActionFullSpec
+---@field cr PairFullCond
+---@field space PairActionFullSpec
 
 ---@class PairLineContext
 ---@field col integer
