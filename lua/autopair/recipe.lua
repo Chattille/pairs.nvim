@@ -1,3 +1,10 @@
+local conds = require 'autopair.conds'
+
+---@param ctx PairContext
+local function quote_not_after(ctx)
+    return conds.notafter '%w'(ctx)
+end
+
 ---@type PairSpec[]
 return {
     {
@@ -80,7 +87,7 @@ return {
     {
         opener = "'",
         closer = "'",
-        pair = true,
+        pair = quote_not_after,
         close = true,
         del = true,
         cr = false,
@@ -88,7 +95,7 @@ return {
     {
         opener = '"',
         closer = '"',
-        pair = true,
+        pair = quote_not_after,
         close = true,
         del = true,
         cr = false,
@@ -105,6 +112,7 @@ return {
             'svelte',
             'vue',
         },
+        pair = { i = quote_not_after },
         cr = false,
     },
 }

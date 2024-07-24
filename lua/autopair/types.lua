@@ -79,6 +79,13 @@ return M
 ---@field cr LengthSet
 ---@field space table<PairModeType, LengthSet>
 
+---@class DefaultCondition
+---@field pair table<PairModeType, ActionCondition[]>
+---@field close table<PairModeType, ActionCondition[]>
+---@field cr ActionCondition[]
+---@field del table<PairModeType, ActionCondition[]>
+---@field space table<PairModeType, ActionCondition[]>
+
 ---@class State
 ---@field specs SpecRecord
 ---@field lengths LengthRecord
@@ -92,6 +99,7 @@ return M
 ---@field fastwrap? APFastWrapConfig Config for fast wrap.
 ---@field mapping? APMappingConfig Enable or disable keymaps.
 ---@field spec? APSpecConfig Config for default spec behaviours.
+---@field condition? APConditionConfig Config for default conditions.
 
 ---@class APFastWrapConfig
 ---Enable keymap for fast wrap. Default `false` for both imap and cmap.

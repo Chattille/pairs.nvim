@@ -24,6 +24,9 @@ M.config = {
         enable_default_conditions = true,
         enable_default_specs = true,
     },
+    condition = {
+        ignore_pair_if_before = [=[[%w%'%"]]=],
+    },
 }
 
 ---@param config APConfig
@@ -35,6 +38,7 @@ local function validate(config)
         fastwrap = { config.fastwrap, 'table', true },
         mapping = { config.mapping, 'table', true },
         spec = { config.spec, 'table', true },
+        condition = { config.condition, 'table', true },
     }
 
     if config.fastwrap then
@@ -66,6 +70,16 @@ local function validate(config)
             enable_default_specs = {
                 config.spec.enable_default_specs,
                 'boolean',
+                true,
+            },
+        }
+    end
+
+    if config.condition then
+        vim.validate {
+            ignore_pair_if_before = {
+                config.condition.ignore_pair_if_before,
+                'string',
                 true,
             },
         }
