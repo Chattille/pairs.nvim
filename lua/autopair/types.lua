@@ -30,6 +30,7 @@ M.KEY = {
     eol = '<End>',
     esc = '<Esc>',
     left = '<Left>',
+    nundo = '<C-g>U',
     right = '<Right>',
     space = '<Space>',
     undo = '<C-g>u',

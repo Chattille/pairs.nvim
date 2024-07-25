@@ -56,12 +56,28 @@ function M.exprmap(opts)
 end
 
 ---Check cmdtype.
-function M.cmdtype_enabled()
+local function cmdtype_enabled()
     local cmdtype = vim.fn.getcmdtype()
     if cmdtype == '' or C.config.spec.enabled_cmdtype:find('%' .. cmdtype) then
         return true
     end
     return false
+end
+
+---@param mode string
+---@return boolean
+function M.mode_qualified(mode)
+    if mode ~= 'i' and mode ~= 'c' then
+        return false
+    end
+    if mode == 'c' and not cmdtype_enabled() then
+        return false
+    end
+    return true
+end
+
+function M.get_mode()
+    return vim.api.nvim_get_mode().mode:sub(1, 1)
 end
 
 ---Get cursor and line info.

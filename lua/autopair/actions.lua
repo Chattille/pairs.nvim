@@ -270,20 +270,22 @@ end
 ---@param key string
 ---@return string
 local function trigger(key)
-    local mode = vim.api.nvim_get_mode().mode
-    local aspecs = state.specs.insert[mode][key]
-
-    if mode == 'c' and not U.cmdtype_enabled() then
+    local mode = U.get_mode()
+    if not U.mode_qualified(mode) then
         return key
     end
 
+    local aspecs = state.specs.insert[mode][key]
     if aspecs.close then -- trigger closing first
         for _, spec in ipairs(aspecs.close) do
             local ctx = U.get_context(mode, spec, key)
             ---@cast ctx PairContext
             if insert_should(ACTION.close, ctx) then
                 local length = #ctx.spec.closer.text + (ctx.spaced and 1 or 0)
-                return KEY.right:rep(length)
+                -- make dot-repeat work correctly in Insert mode
+                local right = mode == 'i' and KEY.nundo .. KEY.right
+                    or KEY.right
+                return right:rep(length)
             end
         end
     end
@@ -295,11 +297,13 @@ local function trigger(key)
             if insert_should(ACTION.pair, ctx) then
                 -- remove inserted pair before pairing
                 local clears = KEY.del:rep(count_del(ctx))
-                -- insert closer first to avoid <C-w> not recognising word
+                -- make dot-repeat work correctly in Insert mode
+                local left = mode == 'i' and KEY.nundo .. KEY.left or KEY.left
+                -- insert closer first to avoid flickering
                 return KEY.abbr
                     .. clears
                     .. ctx.spec.closer.text
-                    .. KEY.left:rep(#ctx.spec.closer.text)
+                    .. left:rep(#ctx.spec.closer.text)
                     .. key
             end
         end
@@ -310,9 +314,14 @@ end
 
 ---@return string
 local function trigger_cr()
+    local mode = U.get_mode()
+    if not U.mode_qualified(mode) then
+        return KEY.abbr .. KEY.cr
+    end
+
     local ctx = U.get_context 'i'
     if adjacent_should(ACTION.cr, ctx) then
-        return KEY.undo .. KEY.abbr .. KEY.cr .. KEY.up .. KEY.eol .. KEY.cr
+        return KEY.abbr .. KEY.undo .. KEY.cr .. KEY.up .. KEY.eol .. KEY.cr
     else
         return KEY.abbr .. KEY.cr
     end
@@ -320,12 +329,13 @@ end
 
 ---@return string
 local function trigger_del_char()
-    local mode = vim.api.nvim_get_mode().mode
-    local ctx = U.get_context(mode)
-
-    if mode == 'c' and not U.cmdtype_enabled() then
+    local mode = U.get_mode()
+    if not U.mode_qualified(mode) then
         return KEY.bs
-    elseif adjacent_should(ACTION.del, ctx) then
+    end
+
+    local ctx = U.get_context(mode)
+    if adjacent_should(ACTION.del, ctx) then
         return KEY.bs:rep(ctx.spaced and 1 or #ctx.spec.opener.text)
             .. KEY.del:rep(ctx.spaced and 1 or #ctx.spec.closer.text)
     elseif inverse_cr_triggered(ctx) then
@@ -342,14 +352,15 @@ end
 ---@param deltype deletion
 ---@return string
 local function trigger_del_chars(deltype)
-    local mode = vim.api.nvim_get_mode().mode
-    local ctx = U.get_context(mode)
+    local mode = U.get_mode()
     local keys = (mode == 'i' and KEY.undo or '')
         .. (deltype == DELETION.word and KEY.cw or KEY.cu)
-
-    if mode == 'c' and not U.cmdtype_enabled() then
+    if not U.mode_qualified(mode) then
         return keys
-    elseif inverse_cr_triggered(ctx) then
+    end
+
+    local ctx = U.get_context(mode)
+    if inverse_cr_triggered(ctx) then
         -- inverse of auto-indenting
         local next_line =
             vim.api.nvim_buf_get_lines(0, ctx.row, ctx.row + 1, true)[1]
@@ -414,13 +425,15 @@ end
 
 ---@return string
 local function trigger_space()
-    local mode = vim.api.nvim_get_mode().mode
-    local ctx = U.get_context(mode)
-
-    if mode == 'c' and not U.cmdtype_enabled() then
+    local mode = U.get_mode()
+    if not U.mode_qualified(mode) then
         return KEY.abbr .. KEY.space
-    elseif adjacent_should(ACTION.space, ctx) then
-        return KEY.abbr .. KEY.space .. KEY.left .. KEY.space
+    end
+
+    local ctx = U.get_context(mode)
+    if adjacent_should(ACTION.space, ctx) then
+        local left = mode == 'i' and KEY.nundo .. KEY.left or KEY.left
+        return KEY.abbr .. KEY.space .. left .. KEY.space
     else
         return KEY.abbr .. KEY.space
     end
