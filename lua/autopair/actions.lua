@@ -273,6 +273,10 @@ local function trigger(key)
     local mode = vim.api.nvim_get_mode().mode
     local aspecs = state.specs.insert[mode][key]
 
+    if mode == 'c' and not U.cmdtype_enabled() then
+        return key
+    end
+
     if aspecs.close then -- trigger closing first
         for _, spec in ipairs(aspecs.close) do
             local ctx = U.get_context(mode, spec, key)
@@ -318,7 +322,10 @@ end
 local function trigger_del_char()
     local mode = vim.api.nvim_get_mode().mode
     local ctx = U.get_context(mode)
-    if adjacent_should(ACTION.del, ctx) then
+
+    if mode == 'c' and not U.cmdtype_enabled() then
+        return KEY.bs
+    elseif adjacent_should(ACTION.del, ctx) then
         return KEY.bs:rep(ctx.spaced and 1 or #ctx.spec.opener.text)
             .. KEY.del:rep(ctx.spaced and 1 or #ctx.spec.closer.text)
     elseif inverse_cr_triggered(ctx) then
@@ -340,7 +347,9 @@ local function trigger_del_chars(deltype)
     local keys = (mode == 'i' and KEY.undo or '')
         .. (deltype == DELETION.word and KEY.cw or KEY.cu)
 
-    if inverse_cr_triggered(ctx) then
+    if mode == 'c' and not U.cmdtype_enabled() then
+        return keys
+    elseif inverse_cr_triggered(ctx) then
         -- inverse of auto-indenting
         local next_line =
             vim.api.nvim_buf_get_lines(0, ctx.row, ctx.row + 1, true)[1]
@@ -407,7 +416,10 @@ end
 local function trigger_space()
     local mode = vim.api.nvim_get_mode().mode
     local ctx = U.get_context(mode)
-    if adjacent_should(ACTION.space, ctx) then
+
+    if mode == 'c' and not U.cmdtype_enabled() then
+        return KEY.abbr .. KEY.space
+    elseif adjacent_should(ACTION.space, ctx) then
         return KEY.abbr .. KEY.space .. KEY.left .. KEY.space
     else
         return KEY.abbr .. KEY.space

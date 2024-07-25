@@ -20,6 +20,7 @@ M.config = {
     },
     spec = {
         default_cmap = false,
+        enabled_cmdtype = ':>@-=',
         default_space = false,
         enable_default_conditions = true,
         enable_default_specs = true,
@@ -61,6 +62,7 @@ local function validate(config)
     if config.spec then
         vim.validate {
             default_cmap = { config.spec.default_cmap, 'boolean', true },
+            enabled_cmdtype = { config.spec.enabled_cmdtype, 'string', true },
             default_space = { config.spec.default_space, 'boolean', true },
             enable_default_conditions = {
                 config.spec.enable_default_conditions,

@@ -1,3 +1,5 @@
+local C = require 'autopair.config'
+
 local M = {}
 
 ---Ternary operator.
@@ -51,6 +53,15 @@ function M.exprmap(opts)
         opts.rhs,
         { buffer = opts.buf, expr = true, desc = opts.desc }
     )
+end
+
+---Check cmdtype.
+function M.cmdtype_enabled()
+    local cmdtype = vim.fn.getcmdtype()
+    if cmdtype == '' or C.config.spec.enabled_cmdtype:find('%' .. cmdtype) then
+        return true
+    end
+    return false
 end
 
 ---Get cursor and line info.

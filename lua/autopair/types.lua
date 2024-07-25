@@ -123,6 +123,9 @@ return M
 ---Enable cmap by default for added pairs if the action is not configured.
 ---Default `false`.
 ---@field default_cmap? boolean
+---Command-line type to be enabled. Same as `getcmdtype()`. Default ':>@-=',
+---which includes all types but forward and backward search command.
+---@field enabled_cmdtype? string
 ---Enable space action when not specified. Default `false`.
 ---@field default_space? boolean
 ---Enable default conditions. Default `true`.
@@ -156,6 +159,7 @@ return M
 
 ---@class (exact) APSpecFullConfig
 ---@field default_cmap boolean
+---@field enabled_cmdtype? string
 ---@field default_space boolean
 ---@field enable_default_conditions boolean
 ---@field enable_default_specs boolean
