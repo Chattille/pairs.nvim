@@ -55,6 +55,20 @@ function M.exprmap(opts)
     )
 end
 
+---@param buf integer
+---@param mode PairModeType
+---@param lhs string
+function M.bufmap_exists(buf, mode, lhs)
+    local bufmaps = vim.api.nvim_buf_get_keymap(buf, mode)
+    for _, bufmap in ipairs(bufmaps) do
+        ---@diagnostic disable-next-line: undefined-field
+        if bufmap.lhs == lhs then
+            return true
+        end
+    end
+    return false
+end
+
 ---Check cmdtype.
 local function cmdtype_enabled()
     local cmdtype = vim.fn.getcmdtype()

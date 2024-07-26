@@ -544,10 +544,17 @@ local function set_keymaps(buf)
         local conf = C.config.mapping[key]
         local mode = {}
 
-        if key == 'cr' and conf or conf.i then
+        if
+            (key == 'cr' and { conf } or { conf.i })[1]
+            and not U.bufmap_exists(buf, 'i', mapopts.lhs)
+        then
             table.insert(mode, 'i')
         end
-        if key ~= 'cr' and conf.c then
+        if
+            key ~= 'cr'
+            and conf.c
+            and not U.bufmap_exists(buf, 'c', mapopts.lhs)
+        then
             table.insert(mode, 'c')
         end
 
