@@ -315,7 +315,8 @@ end
 ---@return string
 local function trigger_cr()
     local mode = U.get_mode()
-    if not U.mode_qualified(mode) then
+    if mode ~= 'i' or vim.bo.buftype == 'prompt' then
+        -- disable in other modes and prompt buftype
         return KEY.abbr .. KEY.cr
     end
 
