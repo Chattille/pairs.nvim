@@ -313,7 +313,7 @@ local function trigger(key)
 end
 
 ---@return string
-local function trigger_cr()
+function M.trigger_cr()
     local mode = U.get_mode()
     if mode ~= 'i' or vim.bo.buftype == 'prompt' then
         -- disable in other modes and prompt buftype
@@ -329,7 +329,7 @@ local function trigger_cr()
 end
 
 ---@return string
-local function trigger_del_char()
+function M.trigger_del_char()
     local mode = U.get_mode()
     if not U.mode_qualified(mode) then
         return KEY.bs
@@ -415,17 +415,17 @@ local function trigger_del_chars(deltype)
 end
 
 ---@return string
-local function trigger_del_line()
+function M.trigger_del_line()
     return trigger_del_chars(DELETION.line)
 end
 
 ---@return string
-local function trigger_del_word()
+function M.trigger_del_word()
     return trigger_del_chars(DELETION.word)
 end
 
 ---@return string
-local function trigger_space()
+function M.trigger_space()
     local mode = U.get_mode()
     if not U.mode_qualified(mode) then
         return KEY.abbr .. KEY.space
@@ -511,32 +511,32 @@ local function set_keymaps(buf)
     local opts = {
         cr = {
             lhs = KEY.cr,
-            rhs = trigger_cr,
+            rhs = M.trigger_cr,
             desc = KEY.cr .. ' for auto-indenting',
         },
         bs = {
             lhs = KEY.bs,
-            rhs = trigger_del_char,
+            rhs = M.trigger_del_char,
             desc = KEY.bs .. ' for auto-deleting (char-wise)',
         },
         ch = {
             lhs = KEY.ch,
-            rhs = trigger_del_char,
+            rhs = M.trigger_del_char,
             desc = KEY.ch .. ' for auto-deleting (char-wise)',
         },
         cu = {
             lhs = KEY.cu,
-            rhs = trigger_del_line,
+            rhs = M.trigger_del_line,
             desc = KEY.cu .. ' for auto-deleting (line-wise)',
         },
         cw = {
             lhs = KEY.cw,
-            rhs = trigger_del_word,
+            rhs = M.trigger_del_word,
             desc = KEY.cw .. ' for auto-deleting (word-wise)',
         },
         space = {
             lhs = KEY.space,
-            rhs = trigger_space,
+            rhs = M.trigger_space,
             desc = KEY.space .. ' for auto-spacing',
         },
     }
