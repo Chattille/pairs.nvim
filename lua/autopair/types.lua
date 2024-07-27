@@ -206,3 +206,11 @@ return M
 ---@class PairContext : PairLineContext
 ---@field key? string
 ---@field spec PairFullSpec
+
+---@class Scanner
+---@field source string
+---@field pos integer
+---@field eol integer
+
+---@class ScannerContext
+---@field quote? string

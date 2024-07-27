@@ -1,8 +1,60 @@
 local C = require 'autopair.config'
+local scn = require 'autopair.scanner'
 
 local M = {}
 
 -- }}} Condition Components {{{
+
+---Check if the opener and closer have the same amount.
+---This will skip backslash-escaped chars and chars inside quoted strings
+---(filetype-specific).
+---
+---@param ctx PairContext
+---@return integer
+function M.check_balance(ctx)
+    if not ctx.spec.nestable then
+        return 0
+    end
+
+    ---@type Scanner
+    local scanner = scn.Scanner.new(ctx.line)
+    ---@type ScannerContext
+    local sctx = { quote = nil }
+    local escaped = false
+    local balance = 0
+
+    while not scanner:isover() do
+        if scn.isquote(scanner, sctx) then
+            goto continue
+        elseif sctx.quote then
+            scanner:step()
+            goto continue
+        elseif escaped then
+            escaped = false
+            scanner:step()
+            goto continue
+        end
+
+        if scanner:eat [[\]] then
+            escaped = true
+        elseif scanner:eat(ctx.spec.opener.text) then
+            balance = balance + 1
+        elseif scanner:eat(ctx.spec.closer.text) then
+            balance = balance - 1
+        else
+            scanner:step()
+        end
+
+        ::continue::
+    end
+
+    return balance
+end
+
+---@param ctx PairContext
+function M.isbalanced(ctx)
+    return M.check_balance(ctx) == 0
+end
 
 ---Is cursor not followed by the pattern?
 ---
@@ -43,24 +95,34 @@ local function only_before(ctx)
     return M.notbefore(C.config.condition.ignore_pair_if_before)(ctx)
 end
 
+---@type ActionCondition
+local function nolessopener(ctx)
+    return M.check_balance(ctx) >= 0
+end
+
+---@type ActionCondition
+local function nolesscloser(ctx)
+    return M.check_balance(ctx) <= 0
+end
+
 ---@type DefaultCondition
 local conditions = {
     pair = {
-        i = { only_before },
-        c = { only_before },
+        i = { only_before, nolessopener },
+        c = { only_before, nolessopener },
     },
     close = {
-        i = {},
-        c = {},
+        i = { nolesscloser },
+        c = { nolesscloser },
     },
     del = {
-        i = {},
-        c = {},
+        i = { M.isbalanced },
+        c = { M.isbalanced },
     },
-    cr = {},
+    cr = { M.isbalanced },
     space = {
-        i = {},
-        c = {},
+        i = { M.isbalanced },
+        c = { M.isbalanced },
     },
 }
 
