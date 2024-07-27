@@ -240,6 +240,10 @@ end
 ---@param ctx PairContext
 ---@return integer
 local function count_del(ctx)
+    if ctx.col == #ctx.line + 1 then -- cursor at end of line
+        return 0
+    end
+
     local del_count = 0
     local i = 1
     local max = #ctx.spec.opener.text - 1
