@@ -131,7 +131,7 @@ return M
 ---@field default_space? boolean
 ---Enable default conditions. Default `true`.
 ---@field enable_default_conditions? boolean
----Enable default specs. Default `true`.
+---Include default specs from `pairs.recipe`. Default `true`.
 ---@field enable_default_specs? boolean
 
 ---@class APConditionConfig
