@@ -115,4 +115,19 @@ return {
         pair = { i = quote_not_after },
         cr = false,
     },
+    {
+        opener = '"""',
+        closer = '"""',
+        filetype = { 'python', 'elixir', 'julia', 'kotlin' },
+    },
+    {
+        opener = "'''",
+        closer = "'''",
+        filetype = 'python',
+    },
+    {
+        opener = '```',
+        closer = '```',
+        filetype = { 'markdown', 'pandoc', 'rmarkdown', 'rmd', 'vimwiki' },
+    },
 }
