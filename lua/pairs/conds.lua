@@ -1,4 +1,5 @@
 local C = require 'pairs.config'
+local U = require 'pairs.utils'
 local scn = require 'pairs.scanner'
 
 local M = {}
@@ -88,7 +89,46 @@ function M.notafter(pattern)
         if pattern ~= '' and ctx.before:match(pattern .. '$') then
             return false
         end
+        return true
+    end
+end
 
+---The pair should not be followed by the pattern.
+---
+---@param pattern string
+---@return ActionCondition
+function M.pairnotbefore(pattern)
+    ---@param ctx PairContext
+    ---@return boolean
+    return function(ctx)
+        if
+            pattern ~= ''
+            and ctx.after:match(
+                '^' .. U.lua_escape(ctx.spec.closer.text) .. pattern
+            )
+        then
+            return false
+        end
+        return true
+    end
+end
+
+---The pair should not be preceeded by the pattern.
+---
+---@param pattern string
+---@return ActionCondition
+function M.pairnotafter(pattern)
+    ---@param ctx PairContext
+    ---@return boolean
+    return function(ctx)
+        if
+            pattern ~= ''
+            and ctx.before:match(
+                pattern .. U.lua_escape(ctx.spec.opener.text) .. '$'
+            )
+        then
+            return false
+        end
         return true
     end
 end
