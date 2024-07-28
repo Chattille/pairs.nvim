@@ -10,11 +10,12 @@ local M = {}
 ---(filetype-specific).
 ---
 ---@param ctx PairContext
----@return integer
+---@return integer # Positive if more openers and negative if more closers.
 function M.check_balance(ctx)
     if
         not ctx.spec.nestable[ctx.mode]
         or not C.config.condition.check_inline_balance
+        or ctx.spec.opener.text == ctx.spec.closer.text
     then
         return 0
     end
