@@ -52,7 +52,7 @@ return M
 ---@alias PairActionFullSpec table<PairModeType, PairFullCond>
 ---@alias PairFullCond { enable: boolean, default: boolean, [integer]: ActionCondition }
 ---@alias PairDelimiterFullSpec { text: string, key: string }
----@alias LengthSet table<integer, boolean>
+---@alias LengthSet integer[]
 ---@alias SpecSet table<string, PairFullSpec>
 
 ---@class ExprOpts

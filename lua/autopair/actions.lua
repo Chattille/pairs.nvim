@@ -18,6 +18,7 @@ local LWORD_VREG =
 local state = nil
 
 local function new_state()
+    ---@type State
     return {
         lengths = {
             del = { i = {}, c = {} },
@@ -123,7 +124,7 @@ local function inverse_cr_triggered(ctx)
     local next_line =
         vim.api.nvim_buf_get_lines(0, ctx.row, ctx.row + 1, true)[1]
 
-    for z in pairs(state.lengths.cr) do
+    for _, z in ipairs(state.lengths.cr) do
         local olen, clen = U.uncantor(z)
         local ltext = vim.trim(prev_line):sub(-olen)
         local rtext = vim.trim(next_line):sub(1, clen)
@@ -182,7 +183,7 @@ local function adjacent_should(atype, ctx)
     local spec
     local lens = atype == ACTION.cr and state.lengths.cr
         or state.lengths[atype][ctx.mode]
-    for z in pairs(lens) do
+    for _, z in ipairs(lens) do
         local olen, clen = U.uncantor(z)
         local text = ctx.line:sub(ctx.col - olen, ctx.col + clen - 1)
         local trigs = atype == ACTION.cr and state.specs.cr
@@ -483,14 +484,18 @@ local function record(spec)
         for _, mode in ipairs { 'i', 'c' } do
             if spec[action][mode].enable then
                 state.specs[action][mode][pair] = spec
-                state.lengths[action][mode][z] = true
+                if not vim.list_contains(state.lengths[action][mode], z) then
+                    table.insert(state.lengths[action][mode], z)
+                end
             end
         end
     end
 
     if spec.cr.enable then
         state.specs.cr[pair] = spec
-        state.lengths.cr[z] = true
+        if not vim.list_contains(state.lengths.cr, z) then
+            table.insert(state.lengths.cr, z)
+        end
     end
 end
 
@@ -585,6 +590,11 @@ end
 ---@param buf integer
 function M.setup(buf)
     state = new_state()
+
+    -- sort specs first by opener length
+    table.sort(S.specs, function(a, b)
+        return #a.opener.text > #b.opener.text
+    end)
 
     -- record triggers for all qualified specs
     local ft = vim.api.nvim_get_option_value('filetype', { buf = buf })
