@@ -230,7 +230,7 @@ Each of them can be:
    end,
    ```
 
-3. a list of condition functions (both modes);
+3. a list of condition functions (both modes), with two additional keys: `enable`, which enables/disables the action, and `default`, which enables/disables default conditions for the action;
    
    ```lua
    space = { -- check conditions for adding spaces
@@ -240,6 +240,8 @@ Each of them can be:
        function(ctx)
            -- ...
        end,
+       enable = true, -- enable `space` action
+       default = true, -- enable default conditions
    },
    ```
 
