@@ -1,4 +1,4 @@
-local F = require 'autopair.filetype'
+local F = require 'pairs.filetype'
 
 local M = {}
 

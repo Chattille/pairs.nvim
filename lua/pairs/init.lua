@@ -1,7 +1,7 @@
-local A = require 'autopair.actions'
-local C = require 'autopair.config'
-local S = require 'autopair.specs'
-local recipe = require 'autopair.recipe'
+local A = require 'pairs.actions'
+local C = require 'pairs.config'
+local S = require 'pairs.specs'
+local recipe = require 'pairs.recipe'
 
 local M = {
     add = S.add,
@@ -64,7 +64,7 @@ function M.setup(opts)
     on_attach() -- attach to the current buffer
 
     local group =
-        vim.api.nvim_create_augroup('autopair_nvim_buf', { clear = true })
+        vim.api.nvim_create_augroup('pairs_nvim_buf', { clear = true })
     vim.api.nvim_create_autocmd('BufEnter', {
         group = group,
         pattern = '*',

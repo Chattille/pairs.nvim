@@ -1,8 +1,8 @@
-local C = require 'autopair.config'
-local D = require 'autopair.conds'
-local S = require 'autopair.specs'
-local T = require 'autopair.types'
-local U = require 'autopair.utils'
+local C = require 'pairs.config'
+local D = require 'pairs.conds'
+local S = require 'pairs.specs'
+local T = require 'pairs.types'
+local U = require 'pairs.utils'
 
 local M = {}
 
@@ -578,7 +578,7 @@ end
 
 local function watch_insert_start()
     vim.api.nvim_create_autocmd('InsertEnter', {
-        group = vim.api.nvim_create_augroup('autopair.nvim', { clear = true }),
+        group = vim.api.nvim_create_augroup('pairs.nvim', { clear = true }),
         pattern = '*',
         callback = function()
             state.inspos = vim.api.nvim_win_get_cursor(0)

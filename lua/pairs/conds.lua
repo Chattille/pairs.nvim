@@ -1,5 +1,5 @@
-local C = require 'autopair.config'
-local scn = require 'autopair.scanner'
+local C = require 'pairs.config'
+local scn = require 'pairs.scanner'
 
 local M = {}
 
@@ -12,7 +12,9 @@ local M = {}
 ---@param ctx PairContext
 ---@return integer
 function M.check_balance(ctx)
-    if not ctx.spec.nestable then
+    if
+        not ctx.spec.nestable or not C.config.condition.check_inline_balance
+    then
         return 0
     end
 

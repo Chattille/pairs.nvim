@@ -1,4 +1,4 @@
----@meta autopair.types
+---@meta pairs.types
 
 local M = {}
 
@@ -45,13 +45,13 @@ return M
 ---@alias PairActionType PairInsertType|PairAdjacentType
 ---@alias ActionCondition fun(ctx: PairContext): boolean
 ---@alias PairCond boolean|ActionCondition|PairFullCond
+---@alias PairFullCond { enable: boolean, default: boolean, [integer]: ActionCondition }
 ---@alias PairActionSpec PairCond|table<PairModeType, PairCond>
----@alias PairDelimiterSpec string|{ text: string, key: string? }
----@alias KeymapConfig boolean|table<PairModeType, boolean?>
+---@alias PairDelimiterSpec string|{ text: string, key?: string }
+---@alias PairDelimiterFullSpec { text: string, key: string }
+---@alias KeymapConfig boolean|table<PairModeType, boolean>
 ---@alias KeymapFullConfig table<PairModeType, boolean>
 ---@alias PairActionFullSpec table<PairModeType, PairFullCond>
----@alias PairFullCond { enable: boolean, default: boolean, [integer]: ActionCondition }
----@alias PairDelimiterFullSpec { text: string, key: string }
 ---@alias LengthSet integer[]
 ---@alias SpecSet table<string, PairFullSpec>
 
@@ -137,6 +137,8 @@ return M
 ---@class APConditionConfig
 ---Disable auto-pairing when the cursor is placed before the pattern.
 ---@field ignore_pair_if_before? string
+---Check bracket balance on the current line for nestable pairs.
+---@field check_inline_balance? boolean
 
 ---@class (exact) APFullConfig
 ---@field enabled boolean
@@ -167,6 +169,7 @@ return M
 
 ---@class (exact) APConditionFullConfig
 ---@field ignore_pair_if_before string
+---@field check_inline_balance boolean
 
 ---Specifications to create auto pairs.
 ---
@@ -175,7 +178,7 @@ return M
 ---@field closer PairDelimiterSpec
 ---@field regex? boolean Pair is regex. Default `false`.
 ---@field filetype? string|string[] Filetype(s) for the pair to be applied.
----@field nestable? boolean|table<PairModeType, boolean?> Pair can be nested.
+---@field nestable? boolean|table<PairModeType, boolean> Pair can be nested.
 ---@field pair? PairActionSpec Conditions for auto-pairing pairs.
 ---@field close? PairActionSpec Conditions for auto-closing out of pairs.
 ---@field del? PairActionSpec Conditions for auto-deleting pairs.

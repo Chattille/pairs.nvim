@@ -1,6 +1,6 @@
-local C = require 'autopair.config'
-local T = require 'autopair.types'
-local U = require 'autopair.utils'
+local C = require 'pairs.config'
+local T = require 'pairs.types'
+local U = require 'pairs.utils'
 
 local ACTION = T.ACTION
 

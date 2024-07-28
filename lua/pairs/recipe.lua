@@ -1,4 +1,4 @@
-local conds = require 'autopair.conds'
+local conds = require 'pairs.conds'
 
 ---@param ctx PairContext
 local function quote_not_after(ctx)

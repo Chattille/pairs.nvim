@@ -27,6 +27,7 @@ M.config = {
     },
     condition = {
         ignore_pair_if_before = [=[[%w%'%"]]=],
+        check_inline_balance = true,
     },
 }
 
@@ -82,6 +83,11 @@ local function validate(config)
             ignore_pair_if_before = {
                 config.condition.ignore_pair_if_before,
                 'string',
+                true,
+            },
+            check_inline_balance = {
+                config.condition.check_inline_balance,
+                'boolean',
                 true,
             },
         }

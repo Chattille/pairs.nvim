@@ -1,4 +1,4 @@
-local C = require 'autopair.config'
+local C = require 'pairs.config'
 
 local M = {}
 
