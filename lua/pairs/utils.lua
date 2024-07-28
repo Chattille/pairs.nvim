@@ -5,7 +5,7 @@ local M = {}
 ---Ternary operator.
 ---
 ---@generic T
----@param cond boolean
+---@param cond any
 ---@param t T
 ---@param f T
 ---@return T

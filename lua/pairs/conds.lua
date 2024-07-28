@@ -66,47 +66,74 @@ end
 ---The cursor should not be followed by the pattern.
 ---
 ---@param pattern string
+---@param type? 'lua'|'vim' Type of pattern. Default `'lua'`.
 ---@return ActionCondition
-function M.notbefore(pattern)
+function M.notbefore(pattern, type)
+    type = type or 'lua'
+
+    ---@param text string
+    local function match(text)
+        if type == 'lua' then
+            return text:match('^' .. pattern)
+        else
+            return vim.regex([[\v^\m]] .. pattern):match_str(text)
+        end
+    end
+
     ---@param ctx PairLineContext
     ---@return boolean
     return function(ctx)
-        if pattern ~= '' and ctx.after:match('^' .. pattern) then
-            return false
-        end
-        return true
+        return U.ternary(pattern ~= '' and match(ctx.after), false, true)
     end
 end
 
 ---The cursor should not be preceeded by the pattern.
 ---
 ---@param pattern string
+---@param type? 'lua'|'vim' Type of pattern. Default `'lua'`.
 ---@return ActionCondition
-function M.notafter(pattern)
+function M.notafter(pattern, type)
+    type = type or 'lua'
+
+    ---@param text string
+    local function match(text)
+        if type == 'lua' then
+            return text:match(pattern .. '$')
+        else
+            return vim.regex([[\m]] .. pattern .. [[\v$]]):match_str(text)
+        end
+    end
+
     ---@param ctx PairLineContext
     ---@return boolean
     return function(ctx)
-        if pattern ~= '' and ctx.before:match(pattern .. '$') then
-            return false
-        end
-        return true
+        return U.ternary(pattern ~= '' and match(ctx.before), false, true)
     end
 end
 
 ---The pair should not be followed by the pattern.
 ---
 ---@param pattern string
+---@param type? 'lua'|'vim' Type of pattern. Default `'lua'`.
 ---@return ActionCondition
-function M.pairnotbefore(pattern)
+function M.pairnotbefore(pattern, type)
+    type = type or 'lua'
+
+    ---@param text string
+    ---@param pair string
+    local function match(text, pair)
+        if type == 'lua' then
+            return text:match('^' .. U.lua_escape(pair) .. pattern)
+        else
+            return vim.regex([[\v^\V]] .. pair .. [[\m]] .. pattern)
+                :match_str(text)
+        end
+    end
+
     ---@param ctx PairContext
     ---@return boolean
     return function(ctx)
-        if
-            pattern ~= ''
-            and ctx.after:match(
-                '^' .. U.lua_escape(ctx.spec.closer.text) .. pattern
-            )
-        then
+        if pattern ~= '' and match(ctx.after, ctx.spec.closer.text) then
             return false
         end
         return true
@@ -116,17 +143,26 @@ end
 ---The pair should not be preceeded by the pattern.
 ---
 ---@param pattern string
+---@param type? 'lua'|'vim' Type of pattern. Default `'lua'`.
 ---@return ActionCondition
-function M.pairnotafter(pattern)
+function M.pairnotafter(pattern, type)
+    type = type or 'lua'
+
+    ---@param text string
+    ---@param pair string
+    local function match(text, pair)
+        if type == 'lua' then
+            return text:match(pattern .. U.lua_escape(pair) .. '$')
+        else
+            return vim.regex([[\m]] .. pattern .. [[\V]] .. pair .. [[\v$]])
+                :match_str(text)
+        end
+    end
+
     ---@param ctx PairContext
     ---@return boolean
     return function(ctx)
-        if
-            pattern ~= ''
-            and ctx.before:match(
-                pattern .. U.lua_escape(ctx.spec.opener.text) .. '$'
-            )
-        then
+        if pattern ~= '' and match(ctx.before, ctx.spec.opener.text) then
             return false
         end
         return true
