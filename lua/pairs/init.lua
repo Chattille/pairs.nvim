@@ -1,7 +1,6 @@
 local A = require 'pairs.actions'
 local C = require 'pairs.config'
 local S = require 'pairs.specs'
-local U = require 'pairs.utils'
 local recipe = require 'pairs.recipe'
 
 local M = {
@@ -18,13 +17,10 @@ local function on_attach()
         return
     end
 
-    if not U.buffer_qualified(buf) then
-        return
+    local succ = A.setup()
+    if succ then
+        cache[buf] = A.get_state()
     end
-
-    A.setup()
-
-    cache[buf] = A.get_state()
 end
 
 local function on_detach(data)

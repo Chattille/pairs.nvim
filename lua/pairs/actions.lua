@@ -592,11 +592,16 @@ local function watch_insert_start()
 end
 
 ---@param specs PairFullSpec[]
+---@return boolean # `true` for a successful setup.
 function M.setup_extend(specs)
+    local buf = vim.api.nvim_get_current_buf()
+    if not U.buffer_qualified(buf) then
+        return false
+    end
+
     if not state then
         state = new_state()
     end
-    local buf = vim.api.nvim_get_current_buf()
 
     -- sort specs first by opener length
     table.sort(specs, function(a, b)
@@ -612,13 +617,23 @@ function M.setup_extend(specs)
     end
 
     set_keymaps(buf)
+
+    return true
 end
 
+---@return boolean # `true` for a successful setup.
 function M.setup()
     state = new_state()
+
     -- setup all specs
-    M.setup_extend(M.specs)
+    local succ = M.setup_extend(M.specs)
+    if not succ then
+        return false
+    end
+
     watch_insert_start()
+
+    return true
 end
 
 return M
