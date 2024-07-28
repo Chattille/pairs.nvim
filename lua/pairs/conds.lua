@@ -55,12 +55,14 @@ function M.check_balance(ctx)
     return balance
 end
 
+---Brackets are balanced on the current line.
+---
 ---@param ctx PairContext
 function M.isbalanced(ctx)
     return M.check_balance(ctx) == 0
 end
 
----Is cursor not followed by the pattern?
+---The cursor should not be followed by the pattern.
 ---
 ---@param pattern string
 ---@return ActionCondition
@@ -71,12 +73,11 @@ function M.notbefore(pattern)
         if pattern ~= '' and ctx.after:match('^' .. pattern) then
             return false
         end
-
         return true
     end
 end
 
----Is cursor not preceeded by the pattern?
+---The cursor should not be preceeded by the pattern.
 ---
 ---@param pattern string
 ---@return ActionCondition
