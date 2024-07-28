@@ -1,6 +1,5 @@
 local C = require 'pairs.config'
 local D = require 'pairs.conds'
-local S = require 'pairs.specs'
 local T = require 'pairs.types'
 local U = require 'pairs.utils'
 
@@ -13,6 +12,11 @@ local LWORD_VREG =
     vim.regex [=[\v%(\k+\s*$|[^[:keyword:][:space:]]+\s*$|\s+$|^$)]=]
 
 -- }}} Specs {{{
+
+---Record all transformed PairSpecs.
+---
+---@type PairFullSpec[]
+M.specs = {}
 
 ---@type State
 local state = nil
@@ -587,25 +591,33 @@ local function watch_insert_start()
     })
 end
 
----@param buf integer
-function M.setup(buf)
-    state = new_state()
+---@param specs PairFullSpec[]
+function M.setup_extend(specs)
+    if not state then
+        state = new_state()
+    end
+    local buf = vim.api.nvim_get_current_buf()
 
     -- sort specs first by opener length
-    table.sort(S.specs, function(a, b)
+    table.sort(specs, function(a, b)
         return #a.opener.text > #b.opener.text
     end)
 
     -- record triggers for all qualified specs
     local ft = vim.api.nvim_get_option_value('filetype', { buf = buf })
-    for _, s in ipairs(S.specs) do
+    for _, s in ipairs(specs) do
         if U.filetype_qualified(s, ft) then -- spec enabled in current buffer
             record(s)
         end
     end
 
     set_keymaps(buf)
+end
 
+function M.setup()
+    state = new_state()
+    -- setup all specs
+    M.setup_extend(M.specs)
     watch_insert_start()
 end
 

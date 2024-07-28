@@ -78,18 +78,6 @@ local function cmdtype_enabled()
     return false
 end
 
----@param mode string
----@return boolean
-function M.mode_qualified(mode)
-    if mode ~= 'i' and mode ~= 'c' then
-        return false
-    end
-    if mode == 'c' and not cmdtype_enabled() then
-        return false
-    end
-    return true
-end
-
 function M.get_mode()
     return vim.api.nvim_get_mode().mode:sub(1, 1)
 end
@@ -143,6 +131,45 @@ function M.get_context(mode, spec, key)
         ctx.key = key
     end
     return ctx
+end
+
+---@param mode string
+---@return boolean
+function M.mode_qualified(mode)
+    if mode ~= 'i' and mode ~= 'c' then
+        return false
+    end
+    if mode == 'c' and not cmdtype_enabled() then
+        return false
+    end
+    return true
+end
+
+---@param buf integer
+---@return boolean
+function M.buffer_qualified(buf)
+    -- filetype check
+    local ft = vim.api.nvim_get_option_value('filetype', { buf = buf })
+    if vim.list_contains(C.config.filetypes_excluded, ft) then
+        return false
+    end
+
+    -- buftype check
+    local bt = vim.api.nvim_get_option_value('buftype', { buf = buf })
+    if vim.list_contains(C.config.buftypes_excluded, bt) then
+        return false
+    end
+
+    -- float window check
+    if ft == '' and vim.api.nvim_win_get_config(0).relative ~= '' then
+        return false
+    end
+
+    if bt == 'help' and ft == '' then -- skip initialising help buffer
+        return false
+    end
+
+    return true
 end
 
 ---Is the `spec` qualified in the `ft`?

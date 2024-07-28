@@ -1,3 +1,4 @@
+local A = require 'pairs.actions'
 local C = require 'pairs.config'
 local T = require 'pairs.types'
 local U = require 'pairs.utils'
@@ -5,11 +6,6 @@ local U = require 'pairs.utils'
 local ACTION = T.ACTION
 
 local M = {}
-
----Record all transformed PairSpecs.
----
----@type PairFullSpec[]
-M.specs = {}
 
 --- }}} Helpers {{{
 
@@ -191,15 +187,21 @@ end
 ---
 ---@param spec PairSpec|PairSpec[] A spec or a list of specs.
 function M.add(spec)
-    if type(spec) ~= 'table' then
+    if not vim.islist(spec) then
         spec = { spec }
     end
 
+    ---@type PairFullSpec[]
+    local fullspecs = {}
     for _, s in ipairs(spec) do
         validate(s)
         -- convert to full spec
-        table.insert(M.specs, get_full_spec(s))
+        local fullspec = get_full_spec(s)
+        table.insert(A.specs, fullspec)
+        table.insert(fullspecs, fullspec)
     end
+
+    A.setup_extend(fullspecs)
 end
 
 return M
