@@ -129,7 +129,7 @@ return M
 ---@field enabled_cmdtype? string
 ---Enable space action when not specified. Default `false`.
 ---@field default_space? boolean
----Enable default conditions. Default `true`.
+---Enable default condition functions from `pairs.conds`. Default `true`.
 ---@field enable_default_conditions? boolean
 ---Include default specs from `pairs.recipe`. Default `true`.
 ---@field enable_default_specs? boolean
