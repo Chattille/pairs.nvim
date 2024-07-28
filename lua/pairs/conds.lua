@@ -80,7 +80,7 @@ function M.notbefore(pattern, type)
         end
     end
 
-    ---@param ctx PairLineContext
+    ---@param ctx PairContext
     ---@return boolean
     return function(ctx)
         return U.ternary(pattern ~= '' and match(ctx.after), false, true)
@@ -104,7 +104,7 @@ function M.notafter(pattern, type)
         end
     end
 
-    ---@param ctx PairLineContext
+    ---@param ctx PairContext
     ---@return boolean
     return function(ctx)
         return U.ternary(pattern ~= '' and match(ctx.before), false, true)
@@ -186,24 +186,34 @@ local function nolesscloser(ctx)
     return M.check_balance(ctx) <= 0
 end
 
+---@type ActionCondition
+local function nobackslash(ctx)
+    return M.notafter([[\\\@<!\%(\\\{2}\)*\\]], 'vim')(ctx)
+end
+
+---@type ActionCondition
+local function pairnobackslash(ctx)
+    return M.pairnotafter([[\\\@<!\%(\\\{2}\)*\\]], 'vim')(ctx)
+end
+
 ---@type DefaultCondition
 local conditions = {
     pair = {
-        i = { only_before, nolessopener },
-        c = { only_before, nolessopener },
+        i = { only_before, nobackslash, nolessopener },
+        c = { only_before, nobackslash, nolessopener },
     },
     close = {
-        i = { nolesscloser },
-        c = { nolesscloser },
+        i = { nobackslash, pairnobackslash, nolesscloser },
+        c = { nobackslash, pairnobackslash, nolesscloser },
     },
     del = {
-        i = { M.isbalanced },
-        c = { M.isbalanced },
+        i = { pairnobackslash, M.isbalanced },
+        c = { pairnobackslash, M.isbalanced },
     },
     cr = { M.isbalanced },
     space = {
-        i = { M.isbalanced },
-        c = { M.isbalanced },
+        i = { pairnobackslash, M.isbalanced },
+        c = { pairnobackslash, M.isbalanced },
     },
 }
 
