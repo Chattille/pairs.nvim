@@ -53,7 +53,7 @@ local function validate(config)
         vim.validate {
             bs = { config.mapping.bs, { 'boolean', 'table' }, true },
             ch = { config.mapping.ch, { 'boolean', 'table' }, true },
-            cr = { config.mapping.cr, { 'boolean', 'table' }, true },
+            cr = { config.mapping.cr, 'boolean', true },
             cu = { config.mapping.cu, { 'boolean', 'table' }, true },
             cw = { config.mapping.cw, { 'boolean', 'table' }, true },
             space = { config.mapping.space, { 'boolean', 'table' }, true },
