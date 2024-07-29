@@ -4,6 +4,15 @@ Another simple autopair plugin for NeoVim.
 
 Heavily inspired by [nvim-autopairs][nvim_autopairs] and [auto-pairs][auto_pairs].
 
+## Disclaimer
+
+This plugin is more like a hobby project or a practice project. As I am not a professional programmer, the repo will probably not be maintained actively. If you meet any problems when using the plugin or see some bad codes (you definitely will), feel free to share your thoughts, fork this repo, or use the following more professional, well-designed, and probably more feature-packed plugins:
+
+- [Ultimate-autopair.nvim][ultimate_autopair]: profile-wise autopair plugin for Insert and Cmdline modes with multiline and Tree-sitter support;
+- [nvim-autopairs][nvim_autopairs]: the most popular autopair plugin for Insert mode with Tree-sitter support;
+- [autoclose.nvim][autoclose_nvim]: minimalist autopair plugin for Insert and Cmdline modes;
+- [auto-pairs][auto_pairs]: not for NeoVim and not maintained for a very long time, but still a great plugin and gives Pairs.nvim much inspiration;
+
 ## Default Config
 
 ```lua
@@ -167,7 +176,7 @@ The pair spec can specify five kinds of pair actions:
   
   ```
   before     insert   after
-  ========   ======   =====
+  ========   ======   ========
   <!--|-->   >        <!---->|
   ```
 
@@ -259,39 +268,12 @@ Each of them can be:
 
 If omitted, the pair action will be enabled for Insert mode by default and Cmdline mode will be determined by `spec.default_cmap`.
 
-For reference, a condition function is a function that receives `ctx` and returns a boolean. If all condition functions return `true`, the pair action will be performed, otherwise the action will not be triggered. `ctx` is a table that contains:
-
-```lua
----@class PairContext
----@field key    string  Character that triggers the pair action.
----@field mode   string  'i' (Insert) or 'c' (Cmdline).
----@field row    integer 1-based cursor row.
----@field col    integer 1-based cursor column.
----@field line   string  Current line content.
----@field before string  Text before the cursor.
----@field after  string  Text after the cursor.
----@field spaced boolean `space` action is active. Useful for deletion.
----@field spec   table   Pair spec as described above.
-```
-
-Default condition functions can be accessed via `require('pairs.conds')`.
-
-## Disclaimer
-
-This plugin is more like a hobby project or a practice project. As I am not a professional programmer, the repo will probably not be maintained actively. If you meet any problems when using the plugin or see some bad codes (you definitely will), feel free to share your thoughts, fork this repo, or use the following more professional, well-designed, and probably more feature-packed plugins:
-
-- [Ultimate-autopair.nvim][ultimate_autopair]: autopair plugin for Insert and Cmdline modes with multiline and Tree-sitter support;
-- [nvim-autopairs][nvim_autopairs]: the most popular autopair plugin for Insert mode with Tree-sitter support;
-- [autoclose.nvim][autoclose_nvim]: minimalist autopair plugin for Insert and Cmdline modes;
-- [auto-pairs][auto_pairs]: not for NeoVim and not maintained for a very long time, but still a great plugin and gives Pairs.nvim much inspiration;
-
 ## TODO
 
 - [ ] regex pairs;
 - [ ] Unicode pairs;
 - [ ] Tree-sitter support;
 - [ ] fastwrap support;
-- [ ] help file;
 
 [nvim_autopairs]: https://github.com/windwp/nvim-autopairs
 [auto_pairs]: https://github.com/jiangmiao/auto-pairs

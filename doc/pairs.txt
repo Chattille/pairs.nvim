@@ -1,0 +1,601 @@
+*pairs.txt*                           Another simple autopair plugin for NeoVim.
+
+==============================================================================
+Table of Contents                                                   *pairs.nvim*
+
+    1. Introduction ................................... |pairs-introduction|
+    2. Setup ................................................. |pairs-setup|
+
+       2.1 Default Settings ....................... |pairs-default-settings|
+       2.2 Config ........................................... |pairs-config|
+
+    3. Custom Pairs ................................... |pairs-custom-pairs|
+
+       3.1 Add Pairs ..................................... |pairs-add-pairs|
+       3.2 Pair Spec ...................................... |pairs-PairSpec|
+       3.3 Pair Actions ............................... |pairs-pair-actions|
+       3.4 Helpers ......................................... |pairs-helpers|
+
+==============================================================================
+1. Introduction                                             *pairs-introduction*
+
+Pairs.nvim is another simple autopair plugin for NeoVim that helps you
+insert, delete, and create pairs.
+
+Pairs.nvim is heavily inspired by:
+
+• nvim-autopairs: https://github.com/windwp/nvim-autopairs
+• auto-pairs: https://github.com/jiangmiao/auto-pairs
+
+==============================================================================
+2. Setup                                                           *pairs-setup*
+
+Call `require('pairs').setup(<config>)` somewhere in your config file to setup
+Pairs.nvim.
+
+..............................................................................
+                                                        *pairs-default-settings*
+2.1 Default Settings ~
+
+The following code is an overview of setup options and their default values:
+>lua
+    require('pairs').setup {
+        -- enable Pairs.nvim
+        enabled = true,
+	-- disable in these filetypes
+	filetypes_excluded = { 'TelescopePrompt' },
+	-- disable in these buftypes
+	buftypes_excluded = {},
+	-- specify how keymaps to <CR>, <BS>, etc. should be created
+	mapping = {
+	    cr = true,
+	    -- can be a table that specifies config for each mode separately
+	    bs = { i = true, c = true },
+            ch = { i = false, c = false },
+            cw = { i = true, c = false },
+            cu = { i = true, c = false },
+            space = { i = true, c = false },
+	},
+	-- specify default config for each pair spec
+	spec = {
+            default_cmap = false,
+            enabled_cmdtype = ':>@-=',
+            default_space = false,
+            enable_default_conditions = true,
+            enable_default_specs = true,
+	},
+	-- specify default config for default condition functions
+	condition = {
+            ignore_pair_if_before = [=[[%w%'%"]]=],
+            check_inline_balance = true,
+	},
+    }
+<
+..............................................................................
+                                                                  *pairs-config*
+2.2 Config ~
+
+Pass your config table to `setup()` to override the default settings. All
+config options can be omitted. If omitted, the default value will be used.
+
+       	                                                         *pairs-enabled*
+enabled ~
+    type:    `boolean`
+    default: `true`
+
+    Set `true` to enable Pairs.nvim or `false` to disable the plugin.
+
+                                                      *pairs-filetypes_excluded*
+filetypes_excluded ~
+    type:    `string[]`
+    default: `{ 'TelescopePrompt' }`
+
+    A list of 'filetype's where the plugin should be disabled. Pair specs will
+    be ignored and buffer keymaps will not be created.
+
+                                                       *pairs-buftypes_excluded*
+buftypes_excluded ~
+    type:    `string[]`
+    default: `{}`
+
+    Similar to |filetypes_excluded|, it specifies a list of 'buftype's where
+    the plugin should be disabled.
+
+                                                              *pairs-mapping.cr*
+mapping.cr ~
+    type:    `boolean`
+    default: `true`
+
+    Enable/disable the keymap to <CR> (auto-indenting). Different from other
+    mappings, <CR> can only be configured in Insert mode as indentation in
+    Cmdline mode may be less meaningful.
+
+                                                              *pairs-mapping.bs*
+mapping.bs ~
+    type:    `boolean | { i?: boolean, c?: boolean }`
+    default: `{ i = true, c = true }`
+
+    Enable/disable the keymap to <BS> (char-wise auto-deleting) in Insert or
+    Cmdline mode.
+
+    If it is a boolean, the value will be applied to both modes. If it is a
+    table, optional keys `i` and `c` will be applied to Insert and Cmdline mode
+    respectively. If `i` or `c` is omitted, the default value will be used.
+
+                                                              *pairs-mapping.ch*
+mapping.ch ~
+    type:    `boolean | { i?: boolean, c?: boolean }`
+    default: `{ i = false, c = false }`
+
+    Similar to |mapping.bs|, but creates a keymap to <C-h>.
+
+                                                              *pairs-mapping.cw*
+mapping.cw ~
+    type:    `boolean | { i?: boolean, c?: boolean }`
+    default: `{ i = true, c = false }`
+
+    Enable/disable the keymap to <C-w> (word-wise auto-deleting) in Insert or
+    Cmdline mode.
+
+    When enabled, Pairs.nvim will try its best to decide which pairs should be
+    deleted (see 'iskeyword'). For example ('|' is where the cursor is):
+>
+        text here({ | })
+<
+    When <C-w> is pressed, normally only '({ ' will be deleted. If <C-w>
+    keymap is enabled and pair specs '()' and '{}' are defined, spaces,
+    '{}', and '()' will be deleted:
+>
+        text here|
+<
+    But when there are additional characters between pair closers:
+>
+        text here({ | }extra)
+<
+    <C-w> will only delete the pair defined for '{':
+>
+        text here|extra)
+<
+    This behaviour is the same as what <BS> or <C-h> will do when you replace
+    <C-w> with three <BS> or <C-h>.
+
+                                                              *pairs-mapping.cu*
+mapping.cu ~
+    type:    `boolean | { i?: boolean, c?: boolean }`
+    default: `{ i = true, c = false }`
+
+    Similar to |mapping.cw|, but deletes all content before the cursor.
+
+    Note: <C-u>'s behaviour may be slightly different from one's expectation.
+    As it is difficult to detect whether or not whitespaces after the cursor
+    is deleted by <C-u>, the keymap to <C-u> created by Pairs.nvim will ignore
+    whitespaces right after the cursor and thus will ignore space action.
+    For example:
+>
+        text here({ | })
+<
+    Press <C-u> will not delete '{}' and '()'. The remaining text will be:
+>
+        | })
+<
+    or
+>
+        |})
+<
+    in some files.
+
+                                                           *pairs-mapping.space*
+mapping.space ~
+    type:    `boolean | { i?: boolean, c?: boolean }`
+    default: `{ i = true, c = false }`
+
+    Set `true` to create a keymap to <Space> to add spaces within a pair.
+
+                                                       *pairs-spec.default_cmap*
+spec.default_cmap ~
+    type:    `boolean`
+    default: `false`
+
+    Enable/disable Cmdline mode by default for omitted pair actions.
+
+                                                    *pairs-spec.enabled_cmdtype*
+spec.enabled_cmdtype ~
+    type:    `string`
+    default: `':>@-='`
+
+    A string that contains characters representing Cmdline types. See
+    |getcmdtype()| for the meaning of each symbol. The default value enables
+    all Cmdline types but forward and backward search command (i.e. '/' and
+    '?').
+
+                                                      *pairs-spec.default_space*
+spec.default_space ~
+    type:    `boolean`
+    default: `false`
+
+    Enable/disable space action by default when |PairSpec.space| is omitted.
+
+                                          *pairs-spec.enable_default_conditions*
+spec.enable_default_conditions ~
+    type:    `boolean`
+    default: `true`
+
+    Enable/disable default condition functions for each pair action.
+
+                                               *pairs-spec.enable_default_specs*
+spec.enable_default_specs ~
+    type:    `boolean`
+    default: `true`
+
+    Enable/disable default pair specs from `pairs.recipe`.
+
+                                         *pairs-condition.ignore_pair_if_before*
+condition.ignore_pair_if_before ~
+    type:    `string`
+    default: `[=[[%w%'%"]]=]`
+
+    Do not auto-complete a pair if the cursor is before the specified pattern.
+    Default behaviour:
+>
+        before   insert   after
+	======   ======   =======
+	|hello   (        (|hello
+<
+
+                                          *pairs-condition.check_inline_balance*
+condition.check_inline_balance ~
+    type:    `boolean`
+    default: `true`
+
+    Set `true` to check whether a pair of brackets is balanced on the current
+    line. Default behaviour:
+>
+        before   insert   after
+	======   ======   =====
+        |}       {        {|}
+	------   ------   -----
+	((|)     )        (()|)
+<
+
+==============================================================================
+3. Custom Pairs                                             *pairs-custom-pairs*
+
+You can define your own pairs by adding pair specs.
+
+..............................................................................
+                                                               *pairs-add-pairs*
+3.1 Add Pairs ~
+
+Custom pairs can be added by calling `require('pairs').add(<spec>)`.
+
+pairs.add({spec})                                            *pairs-pairs.add()*
+    Add a pair spec or a list of specs.
+
+    Parameter: ~
+      • {spec} A |PairSpec| or a list of |PairSpec|
+
+..............................................................................
+                                                                *pairs-PairSpec*
+3.2 Pair Spec ~
+
+Pairs are defined in the form of specs:
+>lua
+    {
+        -- specify opener and closer for the pair
+        opener = '<!--',
+        closer = { text = '-->', key = '>' },
+
+        -- specify filetype or a list of filetypes to enable the pair
+        -- prefix the filetype with a `-` to disable it
+        filetype = { 'markdown', 'html' },
+
+        -- specify whether the pair can be nested
+        -- used to check inline balance
+        nestable = false,
+
+        -- config for five pair actions
+        pair = true,
+        close = true,
+        del = true,
+        cr = false,
+        space = true,
+    }
+<
+Except |PairSpec.opener| and |PairSpec.closer|, all options can be omitted.
+
+                                                         *pairs-PairSpec.opener*
+PairSpec.opener ~
+    type: `string | { text: string, key?: string }`
+
+    Specify the opening part of a pair. For table, `text` specifies the
+    content of the opener, `key` specifies the character that will be used to
+    trigger the pair auto-completion. If `key` is omitted, the last character
+    of `text` will be used.
+>lua
+        { opener = '<!--' }
+	{ opener = { text = '<!--', key = '-' } } -- same as above
+<
+                                                         *pairs-PairSpec.closer*
+PairSpec.closer ~
+    type: `string | { text: string, key?: string }`
+
+    Similar to |PairSpec.opener|, but specifies the closing part of a pair.
+
+                                                       *pairs-PairSpec.filetype*
+PairSpec.filetype ~
+    type: `string | string[]`
+
+    Filetype or a list of filetypes to enable the pair. Prefix the string
+    with `-` to disable the pair for that filetype.
+>lua
+        { filetype = '-markdown' } -- disable the pair in MarkDown files
+<
+                                                       *pairs-PairSpec.nestable*
+PairSpec.nestable ~
+    type: `boolean`
+
+    Whether or not the pair can be nested. Used to check bracket balance on
+    the current line.
+
+                                                           *pairs-PairSpec.pair*
+PairSpec.pair ~
+    type: |PairActionSpec|
+
+    Pair action for auto-completing the pair.
+>
+        before   insert   after
+	======   ======   =====
+        |        (        (|)
+<
+                                                          *pairs-PairSpec.close*
+PairSpec.close ~
+    type: |PairActionSpec|
+
+    Pair action for auto-closing the pair.
+>
+        before     insert   after
+        ========   ======   ========
+        <!--|-->   >        <!---->|
+<
+                                                            *pairs-PairSpec.del*
+PairSpec.del ~
+    type: |PairActionSpec|
+
+    Pair action for auto-deleting the pair.
+>
+        before    insert   after
+        =======   ======   =====
+        '''|'''   <BS>     |
+<
+                                                             *pairs-PairSpec.cr*
+PairSpec.cr ~
+    type: |PairActionSpec|
+
+    Pair action for auto-indenting pair. It also controls auto-deleting cross
+    lines.
+>
+        before    insert   after
+        =======   ======   =====
+        {|}       <CR>     {
+                               |
+                           }
+        -------   ------   -----
+        {         <BS>     {|}
+        |
+        }
+<
+                                                          *pairs-PairSpec.space*
+PairSpec.space ~
+    type: |PairActionSpec|
+
+    Pair action for adding and removing spaces within the pair.
+>
+        before    insert    after
+        =======   =======   =====
+        <|>       <Space>   < | >
+        -------   -------   -----
+        < | >     <BS>      <|>
+        -------   -------   -----
+        < | >     >         <  >|
+<
+..............................................................................
+                                     *pairs-pair-actions* *pairs-PairActionSpec*
+3.3 Pair Actions ~
+
+Config for each pair action can be:
+
+`boolean` ~
+    Enable/disable the pair action for both Insert and Cmdline mode.
+
+    Example: ~
+>lua
+        { pair = true } -- enable auto-completing for both modes
+	{ pair = { i = true, c = true } } -- equivalent
+<
+                                                         *pairs-ActionCondition*
+`ActionCondition` ~
+    A Condition function that checks whether the pair action should be
+    performed. It returns `false` if the pair action should be disabled and
+    `true` to let Pairs.nvim check remaining conditions. If it is passed to
+    the pair action config, it will be used for both Insert and Cmdline modes.
+
+                                                             *pairs-PairContext*
+    Parameter: ~
+      • {ctx}  (|PairContext|) a table with following fields:
+
+               • key: (string) Character that triggers the pair action.
+               • mode: (string) `'i'` for Insert and `'c'` for Cmdline.
+               • row: (integer) 1-based cursor row.
+               • col: (integer) 1-based cursor column.
+               • line: (string) Current line content.
+               • before: (string) Text before the cursor.
+               • after: (string) Text after the cursor.
+               • spaced: (boolean) Whether spaces are added within the pair.
+               • spec: (|PairSpec|) Pair spec that is used for the pair action.
+
+    Return: ~
+        boolean
+
+    Example: ~
+>lua
+        {
+	    filetype = 'lua',
+	    pair = function(ctx)
+	        if vim.fn.mode == 'i' and ctx.before:match '%-%-.*$' then
+                    -- disable auto-pairing in lua comments
+		    return false
+                elseif
+		    vim.fn.getcmdtype() == ':'
+		    and ctx.before:match '^help'
+		then -- disable auto-pairing in `:help` cmdline
+                    return false
+		end
+		return true
+	    end,
+	}
+<
+`{ enable?: boolean, default?: boolean, [integer]: ActionCondition }` ~
+    A list of condition functions, which will be checked one by one before
+    the pair action is triggered for both Insert and Cmdline modes. If any of
+    them returns `false`, the pair action will be disabled.
+
+    The list may specify two additional keys:
+
+      • enable:  (boolean) Enables/disables the pair action. If omitted, the
+	         value will be `true` if the list contains at least one
+		 function; otherwise it will be determined by the current
+		 mode, |spec.default_space|, |spec.default_cmap|, etc.
+      • default: (boolean) Includes/excludes default conditions. If omitted,
+	         the value will be determined by
+		 |spec.enable_default_conditions|.
+
+    Example: ~
+>lua
+        {
+            space = { -- check conditions for adding spaces
+                function(ctx)
+                    -- ...
+                end,
+                function(ctx)
+                    -- ...
+                end,
+                enable = true, -- enable space action
+                default = true, -- enable default conditions for this action
+            },
+	}
+<
+`{ i?: ..., c?: ... }` ~
+    Specify conditions for Insert and Cmdline mode separately via two optional
+    fields:
+
+      • i: Config for Insert mode. Can be any of the types described above.
+      • c: Config for Cmdline mode. Can be any of the types described above.
+
+    If fields are omitted, the default value will be determined by the type
+    of the pair action, |spec.default_space|, |spec.default_cmap|, etc.
+
+    Example: ~
+>lua
+    {
+        -- enable for Insert and disable for Cmdline
+        pair = { i = true, c = false },
+        -- specify different conditions for Insert and Cmdline modes
+        space = {
+            i = function(ctx)
+                -- ...
+            end,
+            c = { --[[ ... ]] },
+        },
+    }
+<
+..............................................................................
+                                                                 *pairs-helpers*
+3.4 Helpers ~
+
+The following lists some functions that may be helpful for writing condition
+functions. They can be accessed via `require('pairs.conds')`.
+
+conds.check_balance({ctx})                         *pairs-conds.check_balance()*
+    Check the balance of the pair (i.e. amount of opening and closing part)
+    on the current line. Currently, it only checks bracket-like pairs, that
+    is, pairs with different opener and closer.
+
+    The function will ignore brackets inside `''` and `""`, and those escaped
+    by a backslash `\`.
+
+    Parameter: ~
+      • {ctx}  |PairContext|.
+
+    Return: ~
+        An integer. Positive if the current line contains more openers,
+	negative if more closers, and 0 if the amount of openers and closers
+	are the same.
+
+                                                      *pairs-conds.isbalanced()*
+conds.isbalanced({ctx})
+    A condition function that checks whether brackets are balanced on the
+    current line.
+
+    Parameter: ~
+      • {ctx}  (|PairContext|)
+
+    Return: ~
+        boolean
+
+                                                       *pairs-conds.notbefore()*
+conds.notbefore({pattern} [, {type}])
+    Returns a condition function, which returns `true` if the cursor is not
+    placed right before the {pattern}.
+
+    Parameters: ~
+      • {pattern}  (string) Lua pattern or Vim regex. No need to add `^` to
+	           the pattern as it is already added internally.
+      • {type}     (string) Type of pattern. One of `'lua'` or `'vim'`.
+	           Default `'lua'`.
+
+    Return: ~
+        |ActionCondition|
+
+                                                        *pairs-conds.notafter()*
+conds.notafter({pattern} [, {type}])
+    Returns a condition function, which returns `true` if the cursor is not
+    placed right after the {pattern}.
+
+    Parameters: ~
+      • {pattern}  (string) Lua pattern or Vim regex. No need to add `$` to
+	           the pattern as it is already added internally.
+      • {type}     (string) Type of pattern. One of `'lua'` or `'vim'`.
+	           Default `'lua'`.
+
+    Return: ~
+        |ActionCondition|
+
+                                                   *pairs-conds.pairnotbefore()*
+conds.pairnotbefore({pattern} [, {type}])
+    Returns a condition function, which returns `true` if the existing pair
+    around the cursor is not placed right before the {pattern}.
+
+    Parameters: ~
+      • {pattern}  (string) Lua pattern or Vim regex. No need to add `^` to
+	           the pattern as it is already added internally.
+      • {type}     (string) Type of pattern. One of `'lua'` or `'vim'`.
+	           Default `'lua'`.
+
+    Return: ~
+        |ActionCondition|
+
+                                                    *pairs-conds.pairnotafter()*
+conds.pairnotafter({pattern} [, {type}])
+    Returns a condition function, which returns `true` if the existing pair
+    around the cursor is not placed right after the {pattern}.
+
+    Parameters: ~
+      • {pattern}  (string) Lua pattern or Vim regex. No need to add `$` to
+	           the pattern as it is already added internally.
+      • {type}     (string) Type of pattern. One of `'lua'` or `'vim'`.
+	           Default `'lua'`.
+
+    Return: ~
+        |ActionCondition|
+
+vim:tw=78:ts=8:noet:ft=help:norl:
