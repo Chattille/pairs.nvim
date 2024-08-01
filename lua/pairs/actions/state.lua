@@ -16,6 +16,15 @@ function M.new_state()
             cr = {},
             space = { i = {}, c = {} },
         },
+        regex = {
+            insert = {
+                i = { close = {}, pair = {} },
+                c = { close = {}, pair = {} },
+            },
+            del = { i = {}, c = {} },
+            cr = {},
+            space = { i = {}, c = {} },
+        },
         specs = {
             insert = { i = {}, c = {} },
             del = { i = {}, c = {} },

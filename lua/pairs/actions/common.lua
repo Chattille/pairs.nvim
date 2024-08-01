@@ -97,4 +97,39 @@ function M.del_dryrun(ctx, left, right)
     return ctx
 end
 
+---Do a dry run of backspace deletion, find closers that should be deleted,
+---and return the amount of KEY.del to be inserted.
+---
+---@param ctx PairContext
+---@return integer
+function M.count_del(ctx)
+    if ctx.col == #ctx.line + 1 then -- cursor at end of line
+        return 0
+    end
+
+    local del_count = 0
+    local i = 1
+    local max = #ctx.opener - 1
+
+    if i <= max then
+        local dry_ctx = vim.deepcopy(ctx)
+        while i <= max do
+            if M.adjacent_should(ACTION.del, dry_ctx) then
+                -- simulate deletion
+                local left = dry_ctx.spaced and 1 or #dry_ctx.spec.opener.text
+                local right = dry_ctx.spaced and 1 or #dry_ctx.spec.closer.text
+                M.del_dryrun(dry_ctx, left, right)
+
+                del_count = del_count + right
+                i = i + left
+            else
+                M.del_dryrun(dry_ctx, 1, 0)
+                i = i + 1
+            end
+        end
+    end
+
+    return del_count
+end
+
 return M

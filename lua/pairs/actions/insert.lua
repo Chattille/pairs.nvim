@@ -8,25 +8,119 @@ local KEY = T.KEY
 
 local M = {}
 
----Check if auto-paring is triggered.
----
 ---@param ctx PairContext
 ---@return boolean
-local function pair_triggered(ctx)
-    if ctx.spec.regex and ctx.before:match(ctx.spec.opener.text) then
-        return true
+local function regex_pair_triggered(ctx)
+    if
+        ctx.spec.opener.key ~= ''
+        and not ctx.key:match('^' .. ctx.spec.opener.key .. '$')
+    then -- key not triggering auto-pairing
+        return false
     end
 
-    local escaped_opener = U.lua_escape(ctx.spec.opener.text)
-    if ctx.spec.opener.text:sub(#ctx.spec.opener.text) == ctx.key then
-        if (ctx.before .. ctx.key):match(escaped_opener .. '$') then
-            return true
-        end
-    elseif ctx.before:match(escaped_opener .. '$') then
+    -- get actual opener
+    local line = ctx.before .. ctx.key
+    local ms, me = line:find(ctx.spec.opener.text .. '$')
+    if ms and me then
+        ctx.opener = line:sub(ms, me)
+    end
+
+    if
+        ctx.opener
+        and (
+            ctx.spec.opener.key ~= ''
+            or ctx.key == ctx.opener:sub(#ctx.opener)
+        )
+    then -- compute actual closer
+        ctx.closer = line:sub(-#ctx.opener)
+            :gsub(ctx.spec.opener.text .. '$', ctx.spec.closer.text)
         return true
     end
 
     return false
+end
+
+---@param ctx PairContext
+---@return boolean
+local function insert_pair_triggered(ctx)
+    ctx.opener = ctx.spec.opener.text
+    ctx.closer = ctx.spec.closer.text
+    local length = #ctx.opener
+
+    if (ctx.before .. ctx.key):sub(-length) == ctx.opener then
+        return true
+    else
+        return false
+    end
+end
+
+---Check if auto-pairing is triggered.
+---
+---@param ctx PairContext
+---@return boolean
+local function pair_triggered(ctx)
+    if ctx.spec.regex then
+        return regex_pair_triggered(ctx)
+    else
+        return insert_pair_triggered(ctx)
+    end
+end
+
+---@param ctx PairContext
+---@return boolean
+local function regex_close_triggered(ctx)
+    if
+        ctx.spec.closer.key ~= ''
+        and not ctx.key:match('^' .. ctx.spec.closer.key .. '$')
+    then -- key not triggering auto-closing
+        return false
+    end
+
+    -- get actual closer first
+    local repl_closer =
+        U.get_replaced_sub(ctx.spec.opener.text, ctx.spec.closer.text)
+    local ms, me = ctx.after:find('^' .. repl_closer)
+    if ms and me then
+        ctx.closer = ctx.after:sub(ms, me)
+    elseif ctx.spec.space[ctx.mode].enable then
+        -- check space
+        local sms, sme = ctx.after:find('^ ' .. repl_closer)
+        if sms and sme then
+            ctx.closer = ctx.after:sub(sms + 1, sme)
+            ctx.spaced = true
+        end
+    end
+
+    if
+        ctx.closer
+        and (
+            ctx.spec.closer.key ~= ''
+            -- use the last char if key is unspecified
+            or ctx.key == ctx.closer:sub(#ctx.closer)
+        )
+    then
+        ctx.opener = '' -- cannot decide
+        return true
+    end
+
+    return false
+end
+
+---@param ctx PairContext
+---@return boolean
+local function insert_close_triggered(ctx)
+    ctx.opener = ctx.spec.opener.text
+    ctx.closer = ctx.spec.closer.text
+    local length = #ctx.closer
+
+    if ctx.after:sub(1, length) == ctx.closer then
+        return true
+    elseif ctx.after:sub(1, length + 1) == ' ' .. ctx.closer then
+        ctx.spaced = true
+        return true
+    else
+        return false
+    end
 end
 
 ---Check if auto-closing is triggered.
@@ -34,26 +128,11 @@ end
 ---@param ctx PairContext
 ---@return boolean
 local function close_triggered(ctx)
-    local escaped_closer = ctx.spec.regex and ctx.spec.closer.text
-        or U.lua_escape(ctx.spec.closer.text)
-
     if ctx.spec.regex then
-        if ctx.after:match(escaped_closer) then
-            return true
-        end
-    elseif ctx.after:match('^' .. escaped_closer) then
-        return true
+        return regex_close_triggered(ctx)
+    else
+        return insert_close_triggered(ctx)
     end
-
-    if -- check space
-        ctx.spec.space[ctx.mode].enable
-        and ctx.after:match('^ ' .. escaped_closer)
-    then
-        ctx.spaced = true
-        return true
-    end
-
-    return false
 end
 
 ---@param atype PairInsertType
@@ -76,86 +155,128 @@ local function insert_should(atype, ctx)
     return cm.check_conditions(atype, ctx)
 end
 
----Do a dry run of backspace deletion, find closers that should be deleted,
----and return the amount of KEY.del to be inserted.
----
----@param ctx PairContext
----@return integer
-local function count_del(ctx)
-    if ctx.col == #ctx.line + 1 then -- cursor at end of line
-        return 0
-    end
-
-    local del_count = 0
-    local i = 1
-    local max = #ctx.spec.opener.text - 1
-
-    if i <= max then
-        local dry_ctx = vim.deepcopy(ctx)
-        while i <= max do
-            if cm.adjacent_should(ACTION.del, dry_ctx) then
-                -- simulate deletion
-                local left = dry_ctx.spaced and 1 or #dry_ctx.spec.opener.text
-                local right = dry_ctx.spaced and 1 or #dry_ctx.spec.closer.text
-                cm.del_dryrun(dry_ctx, left, right)
-
-                del_count = del_count + right
-                i = i + left
-            else
-                cm.del_dryrun(dry_ctx, 1, 0)
-                i = i + 1
-            end
+---@param mode PairModeType
+---@param key string
+---@param specs PairFullSpec[]
+---@return string[]?
+local function trigger_pair(mode, key, specs)
+    for _, spec in ipairs(specs) do
+        local ctx = U.get_context(mode, spec, key)
+        ---@cast ctx PairContext
+        if insert_should(ACTION.pair, ctx) then
+            -- remove inserted pair before pairing
+            local clears = KEY.del:rep(cm.count_del(ctx))
+            -- make dot-repeat work correctly in Insert mode
+            local left = mode == 'i' and KEY.nundo .. KEY.left or KEY.left
+            -- return as a list for caller to choose which parts to ignore
+            return {
+                KEY.abbr,
+                clears,
+                ctx.closer,
+                left:rep(#ctx.closer),
+                key,
+            }
         end
     end
+end
 
-    return del_count
+---@param mode PairModeType
+---@param key string
+---@param specs PairFullSpec[]
+---@return string?
+local function trigger_close(mode, key, specs)
+    for _, spec in ipairs(specs) do
+        local ctx = U.get_context(mode, spec, key)
+        ---@cast ctx PairContext
+        if insert_should(ACTION.close, ctx) then
+            local length = #ctx.closer + (ctx.spaced and 1 or 0)
+            -- make dot-repeat work correctly in Insert mode
+            local right = mode == 'i' and KEY.nundo .. KEY.right or KEY.right
+            return right:rep(length)
+        end
+    end
 end
 
 ---Trgger auto-pairing or -closing for `key`.
 ---
+---@param mode PairModeType
 ---@param key string
 ---@return string
-function M.trigger(key)
+local function trigger_insert(mode, key)
+    local aspecs = st.state.specs.insert[mode][key]
+    if aspecs.close then -- trigger closing first
+        local close = trigger_close(mode, key, aspecs.close)
+        if close then
+            return close
+        end
+    end
+
+    if aspecs.pair then
+        local keys = trigger_pair(mode, key, aspecs.pair)
+        if keys then
+            -- insert closer first to avoid flickering
+            return table.concat(keys)
+        end
+    end
+
+    return key
+end
+
+---Check regex pairs.
+---
+---@param mode PairModeType
+---@param key string
+---@param fromevent? boolean
+---@return boolean
+local function trigger_regex(mode, key, fromevent)
+    local aspecs = st.state.regex.insert[mode]
+    if aspecs.close then
+        local close = trigger_close(mode, key, aspecs.close)
+        if close then
+            vim.v.char = ''
+            U.feed(close)
+            return true
+        end
+    end
+
+    if aspecs.pair then
+        local keys = trigger_pair(mode, key, aspecs.pair)
+        if keys then
+            if fromevent then
+                -- pass text to v:char to prevent re-evaluating fed keys
+                vim.v.char = keys[5] .. keys[3]
+                U.feed(keys[2] .. keys[4])
+            else
+                U.feed(table.concat(keys))
+            end
+
+            return true
+        end
+    end
+
+    return false
+end
+
+---@param key string
+---@param fromevent? boolean key from InsertCharPre (true) or fed from keymaps.
+---@return string?
+function M.trigger(key, fromevent)
     local mode = U.get_mode()
     if not U.mode_qualified(mode) then
         return key
     end
 
-    local aspecs = st.state.specs.insert[mode][key]
-    if aspecs.close then -- trigger closing first
-        for _, spec in ipairs(aspecs.close) do
-            local ctx = U.get_context(mode, spec, key)
-            ---@cast ctx PairContext
-            if insert_should(ACTION.close, ctx) then
-                local length = #ctx.spec.closer.text + (ctx.spaced and 1 or 0)
-                -- make dot-repeat work correctly in Insert mode
-                local right = mode == 'i' and KEY.nundo .. KEY.right
-                    or KEY.right
-                return right:rep(length)
-            end
-        end
+    if fromevent and st.state.specs.insert[mode][key] then
+        -- avoid re-evaluating keys fed from insert keymaps
+        return
     end
 
-    if aspecs.pair then
-        for _, spec in ipairs(aspecs.pair) do
-            local ctx = U.get_context(mode, spec, key)
-            ---@cast ctx PairContext
-            if insert_should(ACTION.pair, ctx) then
-                -- remove inserted pair before pairing
-                local clears = KEY.del:rep(count_del(ctx))
-                -- make dot-repeat work correctly in Insert mode
-                local left = mode == 'i' and KEY.nundo .. KEY.left or KEY.left
-                -- insert closer first to avoid flickering
-                return KEY.abbr
-                    .. clears
-                    .. ctx.spec.closer.text
-                    .. left:rep(#ctx.spec.closer.text)
-                    .. key
-            end
-        end
+    local succ = trigger_regex(mode, key, fromevent)
+    if not fromevent and not succ then
+        return trigger_insert(mode, key)
     end
 
-    return key
+    return ''
 end
 
 return M
