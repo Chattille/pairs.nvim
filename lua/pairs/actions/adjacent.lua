@@ -156,8 +156,8 @@ local function trigger_del_chars(deltype)
             cm.adjacent_should(ACTION.del, ctx)
             and not (mode == 'i' and deltype == DELETION.line and ctx.spaced)
         then
-            local left = ctx.spaced and 1 or #ctx.spec.opener.text
-            local right = ctx.spaced and 1 or #ctx.spec.closer.text
+            local left = ctx.spaced and 1 or #ctx.opener
+            local right = ctx.spaced and 1 or #ctx.closer
 
             if i - left < ds then
                 -- opener to be deleted exceeds the leftmost limit of deletion
