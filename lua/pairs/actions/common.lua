@@ -220,6 +220,10 @@ function M.count_del(ctx)
 
     if i <= max then
         local dry_ctx = vim.deepcopy(ctx)
+        -- limit to text to be deleted
+        dry_ctx.before = dry_ctx.before:sub(-max)
+        dry_ctx.line = dry_ctx.before .. dry_ctx.after
+        dry_ctx.col = max + 1
         while i <= max do
             if M.adjacent_should(ACTION.del, dry_ctx) then
                 -- simulate deletion

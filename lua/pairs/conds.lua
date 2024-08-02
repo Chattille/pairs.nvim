@@ -207,8 +207,8 @@ local conditions = {
         c = { nobackslash, pairnobackslash, nolesscloser },
     },
     del = {
-        i = { pairnobackslash, M.isbalanced },
-        c = { pairnobackslash, M.isbalanced },
+        i = { pairnobackslash, nolesscloser },
+        c = { pairnobackslash, nolesscloser },
     },
     cr = { M.isbalanced },
     space = {
