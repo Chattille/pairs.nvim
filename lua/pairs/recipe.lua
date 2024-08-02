@@ -59,10 +59,9 @@ return {
         cr = false,
         space = { i = true, c = false },
     },
-    -- TODO regex pairs
     {
-        opener = '>[%w%s]*$',
-        closer = '^%s*</',
+        opener = '>[%w%s]*',
+        closer = '%s*</',
         regex = true,
         filetype = {
             'astro',

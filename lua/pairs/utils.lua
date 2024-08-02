@@ -297,4 +297,9 @@ function M.get_replaced_sub(pat, sub)
     return sub
 end
 
+---@param sub string Substitute pattern with capture groups.
+function M.has_sub(sub)
+    return LUAP_SUB_VREG:match_str(sub) and true or false
+end
+
 return M

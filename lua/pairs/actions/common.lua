@@ -33,12 +33,107 @@ function M.check_conditions(atype, ctx)
     return true
 end
 
----Check if text adjacent to the cursor matches one of the specs.
+---@param spec PairFullSpec
+---@param ctx PairLineContext
+---@param space? boolean
+---@return PairFullSpec?
+local function regex_get_spec(spec, ctx, space)
+    local os, oe = ctx.before:find(spec.opener.text .. (space and ' $' or '$'))
+    if os and oe then
+        if U.has_sub(spec.closer.text) then -- has capture groups
+            ---@cast ctx PairContext
+            local opener = ctx.before:sub(os, space and oe - 1 or oe)
+            local closer = opener:gsub(spec.opener.text, spec.closer.text)
+            if ctx.after:sub(1, #closer) == closer then
+                ctx.opener = opener
+                ctx.closer = closer
+                ctx.spaced = space
+                return spec
+            end
+        else -- no capture groups
+            local es, ee =
+                ctx.after:find((space and '^ ' or '^') .. spec.closer.text)
+            if es and ee then
+                ---@cast ctx PairContext
+                ctx.opener = ctx.before:sub(os, oe)
+                ctx.closer = ctx.after:sub(es, ee)
+                ctx.spaced = space
+                return spec
+            end
+        end
+    end
+end
+
+---Check regex pairs.
 ---
 ---@param atype PairAdjacentType
 ---@param ctx PairLineContext
 ---@return boolean
-function M.adjacent_should(atype, ctx)
+local function regex_adjacent_should(atype, ctx)
+    local specs = atype == ACTION.cr and st.state.regex.cr
+        or st.state.regex[atype][ctx.mode]
+    local spec
+    for _, regspec in ipairs(specs) do
+        local opener
+        local space
+
+        -- check opener
+        local os, oe = ctx.before:find(regspec.opener.text .. '$')
+        if os and oe then
+            opener = ctx.before:sub(os, oe)
+        elseif atype ~= ACTION.space then
+            local sos, soe = ctx.before:find(regspec.opener.text .. ' $')
+            if sos and soe then
+                opener = ctx.before:sub(sos, soe - 1)
+                space = true
+            end
+        end
+
+        if opener then -- then check closer
+            ---@cast ctx PairContext
+            if U.has_sub(regspec.closer.text) then -- has capture groups
+                local closer =
+                    opener:gsub(regspec.opener.text, regspec.closer.text)
+                if
+                    ctx.after:sub(
+                        space and 2 or 1,
+                        #closer + (space and 1 or 0)
+                    ) == closer
+                then
+                    ctx.opener = opener
+                    ctx.closer = closer
+                    ctx.spaced = space
+                    spec = regspec
+                end
+            else -- no capture groups
+                local es, ee = ctx.after:find(
+                    (space and '^ ' or '^') .. regspec.closer.text
+                )
+                if es and ee then
+                    ctx.opener = opener
+                    ctx.closer = ctx.after:sub(space and es + 1 or es, ee)
+                    ctx.spaced = space
+                    spec = regspec
+                end
+            end
+        end
+    end
+
+    if not spec then
+        return false
+    end
+    ctx.spec = setmetatable({}, { __index = spec })
+
+    ---@cast ctx PairContext
+    return M.check_conditions(atype, ctx)
+end
+
+---Check pairs of fixed length.
+---
+---@param atype PairAdjacentType
+---@param ctx PairLineContext
+---@return boolean
+local function fixed_adjacent_should(atype, ctx)
     -- must check if is in the right context
     local spec
     local lens = atype == ACTION.cr and st.state.lengths.cr
@@ -74,9 +169,21 @@ function M.adjacent_should(atype, ctx)
         return false
     end
     ---@cast ctx PairContext
+    ctx.opener = spec.opener.text
+    ctx.closer = spec.closer.text
     ctx.spec = setmetatable({}, { __index = spec })
 
     return M.check_conditions(atype, ctx)
+end
+
+---Check if text adjacent to the cursor matches one of the specs.
+---
+---@param atype PairAdjacentType
+---@param ctx PairLineContext
+---@return boolean
+function M.adjacent_should(atype, ctx)
+    return regex_adjacent_should(atype, ctx)
+        or fixed_adjacent_should(atype, ctx)
 end
 
 ---Delete by modifying context.
@@ -116,8 +223,8 @@ function M.count_del(ctx)
         while i <= max do
             if M.adjacent_should(ACTION.del, dry_ctx) then
                 -- simulate deletion
-                local left = dry_ctx.spaced and 1 or #dry_ctx.spec.opener.text
-                local right = dry_ctx.spaced and 1 or #dry_ctx.spec.closer.text
+                local left = dry_ctx.spaced and 1 or #dry_ctx.opener
+                local right = dry_ctx.spaced and 1 or #dry_ctx.closer
                 M.del_dryrun(dry_ctx, left, right)
 
                 del_count = del_count + right

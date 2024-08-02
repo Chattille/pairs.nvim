@@ -11,6 +11,46 @@ local LWORD_VREG =
 
 local M = {}
 
+---@param prevl string
+---@param nextl string
+---@return boolean
+local function regex_inverse_cr_triggered(prevl, nextl)
+    for _, spec in ipairs(st.state.regex.cr) do
+        local os, oe = prevl:find(spec.opener.text .. '$')
+        if os and oe then
+            local opener = prevl:sub(os, oe)
+
+            if U.has_sub(spec.closer.text) then
+                local closer = opener:gsub(spec.opener.text, spec.closer.text)
+                if nextl:sub(1, #closer) == closer then
+                    return true
+                end
+            elseif nextl:match('^' .. spec.closer.text) then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
+---@param prevl string
+---@param nextl string
+---@return boolean
+local function fixed_inverse_cr_triggered(prevl, nextl)
+    for _, z in ipairs(st.state.lengths.cr) do
+        local olen, clen = U.uncantor(z)
+        local ltext = prevl:sub(-olen)
+        local rtext = nextl:sub(1, clen)
+
+        if st.state.specs.cr[ltext .. rtext] then
+            return true
+        end
+    end
+
+    return false
+end
+
 ---Check if inverse of auto-indenting is triggered.
 ---
 ---@param ctx PairLineContext
@@ -26,22 +66,14 @@ local function inverse_cr_triggered(ctx)
         return false
     end
 
-    local prev_line =
+    local prevl = vim.trim(
         vim.api.nvim_buf_get_lines(0, ctx.row - 2, ctx.row - 1, true)[1]
-    local next_line =
-        vim.api.nvim_buf_get_lines(0, ctx.row, ctx.row + 1, true)[1]
+    )
+    local nextl =
+        vim.trim(vim.api.nvim_buf_get_lines(0, ctx.row, ctx.row + 1, true)[1])
 
-    for _, z in ipairs(st.state.lengths.cr) do
-        local olen, clen = U.uncantor(z)
-        local ltext = vim.trim(prev_line):sub(-olen)
-        local rtext = vim.trim(next_line):sub(1, clen)
-
-        if st.state.specs.cr[ltext .. rtext] then
-            return true
-        end
-    end
-
-    return false
+    return regex_inverse_cr_triggered(prevl, nextl)
+        or fixed_inverse_cr_triggered(prevl, nextl)
 end
 
 ---@return string
@@ -69,8 +101,8 @@ function M.trigger_del_char()
 
     local ctx = U.get_context(mode)
     if cm.adjacent_should(ACTION.del, ctx) then
-        return KEY.bs:rep(ctx.spaced and 1 or #ctx.spec.opener.text)
-            .. KEY.del:rep(ctx.spaced and 1 or #ctx.spec.closer.text)
+        return KEY.bs:rep(ctx.spaced and 1 or #ctx.opener)
+            .. KEY.del:rep(ctx.spaced and 1 or #ctx.closer)
     elseif inverse_cr_triggered(ctx) then
         -- inverse of auto-indenting
         local next_line =

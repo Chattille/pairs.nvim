@@ -57,14 +57,24 @@ local function record(spec)
 
     -- adjacent pairs
     local pair = spec.opener.text .. spec.closer.text
-    local z = U.cantor(#spec.opener.text, #spec.closer.text)
+    local z = spec.regex and 0
+        or U.cantor(#spec.opener.text, #spec.closer.text)
 
     for _, action in ipairs { ACTION.del, ACTION.space } do
         for _, mode in ipairs { 'i', 'c' } do
             if spec[action][mode].enable then
-                st.state.specs[action][mode][pair] = spec
+                if spec.regex then
+                    table.insert(st.state.regex[action][mode], spec)
+                else
+                    st.state.specs[action][mode][pair] = spec
+                end
+
                 if
-                    not vim.list_contains(st.state.lengths[action][mode], z)
+                    not spec.regex
+                    and not vim.list_contains(
+                        st.state.lengths[action][mode],
+                        z
+                    )
                 then
                     table.insert(st.state.lengths[action][mode], z)
                 end
@@ -73,8 +83,15 @@ local function record(spec)
     end
 
     if spec.cr.enable then
-        st.state.specs.cr[pair] = spec
-        if not vim.list_contains(st.state.lengths.cr, z) then
+        if spec.regex then
+            table.insert(st.state.regex.cr, spec)
+        else
+            st.state.specs.cr[pair] = spec
+        end
+
+        if
+            not spec.regex and not vim.list_contains(st.state.lengths.cr, z)
+        then
             table.insert(st.state.lengths.cr, z)
         end
     end
