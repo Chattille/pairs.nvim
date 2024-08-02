@@ -82,6 +82,12 @@ return {
         close = false,
         del = false,
     },
+    {
+        opener = '%[(=*)%[',
+        closer = '%]%1%]',
+        regex = true,
+        filetype = 'lua',
+    },
 
     {
         opener = "'",
@@ -128,5 +134,14 @@ return {
         opener = '```',
         closer = '```',
         filetype = { 'markdown', 'pandoc', 'rmarkdown', 'rmd', 'vimwiki' },
+    },
+    {
+        opener = '```.*',
+        closer = '```',
+        regex = true,
+        filetype = { 'markdown', 'pandoc', 'rmarkdown', 'rmd', 'vimwiki' },
+        pair = false,
+        close = false,
+        del = false,
     },
 }
