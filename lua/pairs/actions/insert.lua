@@ -115,7 +115,10 @@ local function insert_close_triggered(ctx)
 
     if ctx.after:sub(1, length) == ctx.closer then
         return true
-    elseif ctx.after:sub(1, length + 1) == ' ' .. ctx.closer then
+    elseif
+        ctx.spec.space[ctx.mode].enable
+        and ctx.after:sub(1, length + 1) == ' ' .. ctx.closer
+    then
         ctx.spaced = true
         return true
     else
