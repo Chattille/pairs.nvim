@@ -99,7 +99,12 @@ local function regex_close_triggered(ctx)
             or ctx.key == ctx.closer:sub(#ctx.closer)
         )
     then
-        ctx.opener = '' -- cannot decide
+        local os, oe = ctx.before:find(ctx.spec.opener.text .. '$')
+        if os and oe then
+            ctx.opener = ctx.before:sub(os, oe)
+        else
+            ctx.opener = '' -- cannot decide
+        end
         return true
     end
 

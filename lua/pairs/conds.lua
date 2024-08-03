@@ -166,12 +166,12 @@ function M.pairnotafter(pattern, type)
     ---@param ctx PairContext
     ---@return boolean
     return function(ctx)
-        if
-            pattern ~= ''
-            and ctx.opener ~= ''
-            and match(ctx.before .. (ctx.key or ''), ctx.opener)
-        then
-            return false
+        if pattern ~= '' and ctx.opener ~= '' then
+            local tail = ctx.before:sub(-#ctx.opener) == ctx.opener and ''
+                or (ctx.key or '')
+            if match(ctx.before .. tail, ctx.opener) then
+                return false
+            end
         end
         return true
     end
