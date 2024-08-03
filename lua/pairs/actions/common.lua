@@ -33,43 +33,13 @@ function M.check_conditions(atype, ctx)
     return true
 end
 
----@param spec PairFullSpec
----@param ctx PairLineContext
----@param space? boolean
----@return PairFullSpec?
-local function regex_get_spec(spec, ctx, space)
-    local os, oe = ctx.before:find(spec.opener.text .. (space and ' $' or '$'))
-    if os and oe then
-        if U.has_sub(spec.closer.text) then -- has capture groups
-            ---@cast ctx PairContext
-            local opener = ctx.before:sub(os, space and oe - 1 or oe)
-            local closer = opener:gsub(spec.opener.text, spec.closer.text)
-            if ctx.after:sub(1, #closer) == closer then
-                ctx.opener = opener
-                ctx.closer = closer
-                ctx.spaced = space
-                return spec
-            end
-        else -- no capture groups
-            local es, ee =
-                ctx.after:find((space and '^ ' or '^') .. spec.closer.text)
-            if es and ee then
-                ---@cast ctx PairContext
-                ctx.opener = ctx.before:sub(os, oe)
-                ctx.closer = ctx.after:sub(es, ee)
-                ctx.spaced = space
-                return spec
-            end
-        end
-    end
-end
-
 ---Check regex pairs.
 ---
 ---@param atype PairAdjacentType
 ---@param ctx PairLineContext
+---@param check boolean `true` to check conditions.
 ---@return boolean
-local function regex_adjacent_should(atype, ctx)
+local function regex_adjacent_should(atype, ctx, check)
     local specs = atype == ACTION.cr and st.state.regex.cr
         or st.state.regex[atype][ctx.mode]
     local spec
@@ -122,18 +92,19 @@ local function regex_adjacent_should(atype, ctx)
     if not spec then
         return false
     end
+    ---@cast ctx PairContext
     ctx.spec = setmetatable({}, { __index = spec })
 
-    ---@cast ctx PairContext
-    return M.check_conditions(atype, ctx)
+    return U.ternary(check, M.check_conditions(atype, ctx), true)
 end
 
 ---Check pairs of fixed length.
 ---
 ---@param atype PairAdjacentType
 ---@param ctx PairLineContext
+---@param check boolean `true` to check conditions.
 ---@return boolean
-local function fixed_adjacent_should(atype, ctx)
+local function fixed_adjacent_should(atype, ctx, check)
     -- must check if is in the right context
     local spec
     local lens = atype == ACTION.cr and st.state.lengths.cr
@@ -173,17 +144,20 @@ local function fixed_adjacent_should(atype, ctx)
     ctx.closer = spec.closer.text
     ctx.spec = setmetatable({}, { __index = spec })
 
-    return M.check_conditions(atype, ctx)
+    return U.ternary(check, M.check_conditions(atype, ctx), true)
 end
 
 ---Check if text adjacent to the cursor matches one of the specs.
 ---
 ---@param atype PairAdjacentType
 ---@param ctx PairLineContext
+---@param check? boolean `true` to check conditions. Default `true`.
 ---@return boolean
-function M.adjacent_should(atype, ctx)
-    return regex_adjacent_should(atype, ctx)
-        or fixed_adjacent_should(atype, ctx)
+function M.adjacent_should(atype, ctx, check)
+    ---@cast check -?
+    check = check == nil and true or check
+    return regex_adjacent_should(atype, ctx, check)
+        or fixed_adjacent_should(atype, ctx, check)
 end
 
 ---Delete by modifying context.
@@ -202,45 +176,6 @@ function M.del_dryrun(ctx, left, right)
     end
 
     return ctx
-end
-
----Do a dry run of backspace deletion, find closers that should be deleted,
----and return the amount of KEY.del to be inserted.
----
----@param ctx PairContext
----@return integer
-function M.count_del(ctx)
-    if ctx.col == #ctx.line + 1 then -- cursor at end of line
-        return 0
-    end
-
-    local del_count = 0
-    local i = 1
-    local max = #ctx.opener - 1
-
-    if i <= max then
-        local dry_ctx = vim.deepcopy(ctx)
-        -- limit to text to be deleted
-        dry_ctx.before = dry_ctx.before:sub(-max)
-        dry_ctx.line = dry_ctx.before .. dry_ctx.after
-        dry_ctx.col = max + 1
-        while i <= max do
-            if M.adjacent_should(ACTION.del, dry_ctx) then
-                -- simulate deletion
-                local left = dry_ctx.spaced and 1 or #dry_ctx.opener
-                local right = dry_ctx.spaced and 1 or #dry_ctx.closer
-                M.del_dryrun(dry_ctx, left, right)
-
-                del_count = del_count + right
-                i = i + left
-            else
-                M.del_dryrun(dry_ctx, 1, 0)
-                i = i + 1
-            end
-        end
-    end
-
-    return del_count
 end
 
 return M

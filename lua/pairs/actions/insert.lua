@@ -158,6 +158,45 @@ local function insert_should(atype, ctx)
     return cm.check_conditions(atype, ctx)
 end
 
+---Do a dry run of backspace deletion, find closers that should be deleted,
+---and return the amount of KEY.del to be inserted.
+---
+---@param ctx PairContext
+---@return integer
+local function count_del(ctx)
+    if ctx.col == #ctx.line + 1 then -- cursor at end of line
+        return 0
+    end
+
+    local del_count = 0
+    local i = 1
+    local max = #ctx.opener - 1
+
+    if i <= max then
+        local dry_ctx = vim.deepcopy(ctx)
+        -- limit to text to be deleted
+        dry_ctx.before = dry_ctx.before:sub(-max)
+        dry_ctx.line = dry_ctx.before .. dry_ctx.after
+        dry_ctx.col = max + 1
+        while i <= max do
+            if cm.adjacent_should(ACTION.del, dry_ctx, false) then
+                -- simulate deletion
+                local left = dry_ctx.spaced and 1 or #dry_ctx.opener
+                local right = dry_ctx.spaced and 1 or #dry_ctx.closer
+                cm.del_dryrun(dry_ctx, left, right)
+
+                del_count = del_count + right
+                i = i + left
+            else
+                cm.del_dryrun(dry_ctx, 1, 0)
+                i = i + 1
+            end
+        end
+    end
+
+    return del_count
+end
+
 ---@param mode PairModeType
 ---@param key string
 ---@param specs PairFullSpec[]
@@ -168,7 +207,7 @@ local function trigger_pair(mode, key, specs)
         ---@cast ctx PairContext
         if insert_should(ACTION.pair, ctx) then
             -- remove inserted pair before pairing
-            local clears = KEY.del:rep(cm.count_del(ctx))
+            local clears = KEY.del:rep(count_del(ctx))
             -- make dot-repeat work correctly in Insert mode
             local left = mode == 'i' and KEY.nundo .. KEY.left or KEY.left
             -- return as a list for caller to choose which parts to ignore
