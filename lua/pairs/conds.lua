@@ -133,7 +133,11 @@ function M.pairnotbefore(pattern, type)
     ---@param ctx PairContext
     ---@return boolean
     return function(ctx)
-        if pattern ~= '' and match(ctx.after, ctx.spec.closer.text) then
+        if
+            pattern ~= ''
+            and ctx.closer ~= ''
+            and match(ctx.after, ctx.closer)
+        then
             return false
         end
         return true
@@ -162,7 +166,11 @@ function M.pairnotafter(pattern, type)
     ---@param ctx PairContext
     ---@return boolean
     return function(ctx)
-        if pattern ~= '' and match(ctx.before, ctx.spec.opener.text) then
+        if
+            pattern ~= ''
+            and ctx.opener ~= ''
+            and match(ctx.before .. (ctx.key or ''), ctx.opener)
+        then
             return false
         end
         return true
@@ -199,8 +207,8 @@ end
 ---@type DefaultCondition
 local conditions = {
     pair = {
-        i = { only_before, nobackslash, nolessopener },
-        c = { only_before, nobackslash, nolessopener },
+        i = { only_before, nobackslash, pairnobackslash, nolessopener },
+        c = { only_before, nobackslash, pairnobackslash, nolessopener },
     },
     close = {
         i = { nobackslash, pairnobackslash, nolesscloser },
