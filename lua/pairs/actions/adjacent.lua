@@ -175,6 +175,12 @@ local function trigger_del_chars(deltype)
         end
     end
 
+    if ds < st.state.inspos[2] then
+        -- ignore newly entered chars when cursor stops before the
+        -- start insert col after deletion
+        st.state.inspos = { 1, 0 }
+    end
+
     return keys .. KEY.del:rep(del_count)
 end
 
