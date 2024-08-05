@@ -59,10 +59,9 @@ return {
         cr = false,
         space = { i = true, c = false },
     },
-    -- TODO regex pairs
     {
-        opener = '>[%w%s]*$',
-        closer = '^%s*</',
+        opener = '>[%w%s]*',
+        closer = '%s*</',
         regex = true,
         filetype = {
             'astro',
@@ -82,6 +81,15 @@ return {
         pair = false,
         close = false,
         del = false,
+    },
+    {
+        opener = '%[(=*)%[',
+        closer = '%]%1%]',
+        regex = true,
+        filetype = 'lua',
+        pair = true,
+        close = true,
+        del = true,
     },
 
     {
@@ -129,5 +137,14 @@ return {
         opener = '```',
         closer = '```',
         filetype = { 'markdown', 'pandoc', 'rmarkdown', 'rmd', 'vimwiki' },
+    },
+    {
+        opener = '```.+',
+        closer = '```',
+        regex = true,
+        filetype = { 'markdown', 'pandoc', 'rmarkdown', 'rmd', 'vimwiki' },
+        pair = false,
+        close = false,
+        del = false,
     },
 }

@@ -1,4 +1,7 @@
 local C = require 'pairs.config'
+local scn = require 'pairs.scanner'
+
+local LUAP_SUB_VREG = vim.regex [[\v\%@<!%(\%\%)*\zs\%\d]]
 
 local M = {}
 
@@ -45,13 +48,12 @@ function M.lua_escape(str)
     return escaped
 end
 
----@param opts ExprOpts
-function M.exprmap(opts)
-    vim.keymap.set(
-        opts.mode,
-        opts.lhs,
-        opts.rhs,
-        { buffer = opts.buf, expr = true, desc = opts.desc }
+---@param keys string Raw input string.
+function M.feed(keys)
+    vim.api.nvim_feedkeys(
+        vim.api.nvim_replace_termcodes(keys, true, false, true),
+        'n',
+        false
     )
 end
 
@@ -201,6 +203,103 @@ function M.filetype_qualified(spec, ft)
     else
         return true -- not included in the disabled list
     end
+end
+
+---Get a list of capture group patterns ordered by their group index
+---in the pattern. For example, it will return `{ '(=*(%s*))', '(%s*)' }`
+---for Lua pattern `^(=*(%s*))$`.
+---
+---@param pat string
+---@return string[]
+function M.get_luap_groups(pat)
+    local scanner = scn.Scanner.new(pat)
+    local caps = {} -- list of group text
+    local level = 0 -- group level
+    local count = 0 -- group index
+    local escaped = false
+    local counts = {} -- group index stack
+    local positions = {} -- stack of group start pos
+
+    while not scanner:isover() do
+        if escaped then
+            escaped = false
+            scanner:step()
+        elseif scanner:eat '%' then
+            escaped = true
+        elseif scanner:eat '(' then
+            level = level + 1
+            count = count + 1
+
+            table.insert(counts, count)
+            table.insert(positions, scanner.pos - 1)
+        elseif scanner:eat ')' then
+            -- pop start pos
+            local start = positions[#positions]
+            if not start then
+                error(
+                    ('Invalid pattern "%s": Capture not opened for pos %d'):format(
+                        pat,
+                        scanner.pos - 1
+                    )
+                )
+            end
+
+            positions[#positions] = nil
+            local capstr = pat:sub(start, scanner.pos - 1)
+
+            -- pop group index
+            local index = counts[#counts]
+            -- record index-th group
+            caps[index] = capstr
+            counts[#counts] = nil
+            level = level - 1
+        else
+            scanner:step()
+        end
+    end
+
+    if #positions > 0 then
+        error(
+            ('Invalid pattern "%s": Capture unfinished for pos %d'):format(
+                pat,
+                positions[#positions]
+            )
+        )
+    end
+
+    return caps
+end
+
+---Replace '%1', '%2', etc. in `sub` with corresponding parts in `pat`
+---
+---@param pat string Lua pattern with capture groups.
+---@param sub string Substitute pattern.
+---@return string # Substitute pattern with '%1', etc. replaced.
+function M.get_replaced_sub(pat, sub)
+    local caps = M.get_luap_groups(pat)
+    while true do
+        local ms, me = LUAP_SUB_VREG:match_str(sub)
+        if not ms or not me then
+            break
+        end
+
+        local index = sub:sub(me, me)
+        local repl = caps[tonumber(index)]
+        if not repl then
+            error(
+                ('Invaild substitute "%s": no capture %d'):format(sub, index)
+            )
+        end
+
+        sub = sub:sub(ms == 0 and 0 or 1, ms) .. repl .. sub:sub(me + 1)
+    end
+
+    return sub
+end
+
+---@param sub string Substitute pattern with capture groups.
+function M.has_sub(sub)
+    return LUAP_SUB_VREG:match_str(sub) and true or false
 end
 
 return M

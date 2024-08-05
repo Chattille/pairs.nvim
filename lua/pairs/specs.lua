@@ -172,6 +172,9 @@ local function get_full_spec(spec)
     spec.filetype = get_full_filetype_spec(spec.filetype)
 
     -- full switch
+    if spec.regex == nil then
+        spec.regex = false
+    end
     spec.nestable = get_full_switch_spec(spec.nestable)
 
     -- full actions

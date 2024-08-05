@@ -54,6 +54,7 @@ return M
 ---@alias PairActionFullSpec table<PairModeType, PairFullCond>
 ---@alias LengthSet integer[]
 ---@alias SpecSet table<string, PairFullSpec>
+---@alias LengthRecord table<PairModeType, LengthSet>
 
 ---@class ExprOpts
 ---@field mode string[]
@@ -69,16 +70,11 @@ return M
 ---
 ---@class SpecRecord
 ---@field insert table<PairModeType, table<string, table<PairInsertType, PairFullSpec[]>>>
----@field del table<PairModeType, SpecSet>
----@field cr SpecSet
----@field space table<PairModeType, SpecSet>
+---@field adjacent SpecSet
 
----Record length of opener and/or closer.
----
----@class LengthRecord
----@field del table<PairModeType, LengthSet>
----@field cr LengthSet
----@field space table<PairModeType, LengthSet>
+---@class RegexRecord
+---@field insert table<PairModeType, table<PairInsertType, PairFullSpec[]>>
+---@field adjacent PairFullSpec[]
 
 ---@class DefaultCondition
 ---@field pair table<PairModeType, ActionCondition[]>
@@ -89,6 +85,7 @@ return M
 
 ---@class State
 ---@field specs SpecRecord
+---@field regex RegexRecord
 ---@field lengths LengthRecord
 ---(1, 0)-based position where the latest Insert mode started.
 ---@field inspos [number, number]
@@ -207,8 +204,10 @@ return M
 ---@field spaced? boolean
 
 ---@class PairContext : PairLineContext
----@field key? string
 ---@field spec PairFullSpec
+---@field key? string
+---@field opener? string Actual opener text. Useful for regex pairs.
+---@field closer? string Actual closer text. Useful for regex pairs.
 
 ---@class Scanner
 ---@field source string

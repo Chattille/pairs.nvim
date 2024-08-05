@@ -102,6 +102,9 @@ require('pairs').add {
     -- Prefix the filetype with a `-` to disable it.
     filetype = { 'markdown', 'html' },
 
+    -- Specify whether the pair is interpreted as Lua pattern.
+    regex = false,
+
     -- Specify whether the pair can be nested.
     -- Used to check inline balance.
     nestable = false,
@@ -130,6 +133,35 @@ Pair delimiters are specified via `opener` and `closer`, which can be:
        closer = { text = '-->', key = ',' },
    }
    ```
+
+### `regex`
+
+Pairs.nvim supports Lua pattern pairs. If `regex` is `true`, `opener` and `closer` will be interpreted as Lua pattern:
+
+```lua
+{ -- `[[]]`, `[=[]=]`, `[==[]==]`, etc.
+    opener = '%[(=*)%[',
+    closer = '%]%1%]',
+    regex = true,
+    filetype = 'lua',
+},
+{ -- MarkDown code blocks
+    opener = '```.+',
+    closer = '```',
+    regex = true,
+    filetype = 'markdown',
+    pair = false,
+    close = false,
+    del = false,
+},
+```
+
+When specifying a regex pair:
+
+- `$` and `^` in `opener` and `closer` is unnecessary as they are added internally;
+- `%1`, `%2`, etc. can be used in `closer` to refer to capture groups in `opener`. It is also necessary to `%`-escape all special characters in `closer`;
+
+Currently regex pairs in Cmdline mode is not supported, unless there is already a cmap to the triggering key.
 
 ### `filetype`
 
@@ -270,7 +302,7 @@ If omitted, the pair action will be enabled for Insert mode by default and Cmdli
 
 ## TODO
 
-- [ ] regex pairs;
+- [ ] real regex pairs in Cmdline mode;
 - [ ] Unicode pairs;
 - [ ] Tree-sitter support;
 - [ ] fastwrap support;
