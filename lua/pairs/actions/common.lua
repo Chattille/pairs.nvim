@@ -33,15 +33,14 @@ function M.check_conditions(atype, ctx)
     return true
 end
 
----Check regex pairs.
+---Find matching regex spec.
 ---
 ---@param atype PairAdjacentType
 ---@param ctx PairLineContext
----@param check boolean `true` to check conditions.
 ---@return boolean
-local function regex_adjacent_should(atype, ctx, check)
-    local specs = atype == ACTION.cr and st.state.regex.cr
-        or st.state.regex[atype][ctx.mode]
+local function regex_adjacent_find_spec(atype, ctx)
+    local specs = st.state.regex.adjacent
+    ---@type PairFullSpec
     local spec
     for _, regspec in ipairs(specs) do
         local opener
@@ -74,6 +73,7 @@ local function regex_adjacent_should(atype, ctx, check)
                     ctx.closer = closer
                     ctx.spaced = space
                     spec = regspec
+                    break
                 end
             else -- no capture groups
                 local es, ee = ctx.after:find(
@@ -84,6 +84,7 @@ local function regex_adjacent_should(atype, ctx, check)
                     ctx.closer = ctx.after:sub(space and es + 1 or es, ee)
                     ctx.spaced = space
                     spec = regspec
+                    break
                 end
             end
         end
@@ -95,28 +96,26 @@ local function regex_adjacent_should(atype, ctx, check)
     ---@cast ctx PairContext
     ctx.spec = setmetatable({}, { __index = spec })
 
-    return U.ternary(check, M.check_conditions(atype, ctx), true)
+    return true
 end
 
----Check pairs of fixed length.
+---Find matching spec of fixed length.
 ---
 ---@param atype PairAdjacentType
 ---@param ctx PairLineContext
----@param check boolean `true` to check conditions.
 ---@return boolean
-local function fixed_adjacent_should(atype, ctx, check)
+local function fixed_adjacent_find_spec(atype, ctx)
     -- must check if is in the right context
+    local lens = st.state.lengths[ctx.mode]
+    ---@type PairFullSpec
     local spec
-    local lens = atype == ACTION.cr and st.state.lengths.cr
-        or st.state.lengths[atype][ctx.mode]
     for _, z in ipairs(lens) do
         local olen, clen = U.uncantor(z)
         local tstart = ctx.col - olen
         local tend = ctx.col + clen - 1
         if tstart >= 1 and tend <= #ctx.line then
             local text = ctx.line:sub(tstart, tend)
-            local trigs = atype == ACTION.cr and st.state.specs.cr
-                or st.state.specs[atype][ctx.mode]
+            local trigs = st.state.specs.adjacent
             spec = trigs[text]
             if spec then
                 break
@@ -127,7 +126,7 @@ local function fixed_adjacent_should(atype, ctx, check)
             if atype ~= ACTION.space and space == '  ' then
                 local ltext = ctx.line:sub(ctx.col - 1 - olen, ctx.col - 2)
                 local rtext = ctx.line:sub(ctx.col + 1, ctx.col + clen)
-                spec = st.state.specs.space[ctx.mode][ltext .. rtext]
+                spec = st.state.specs.adjacent[ltext .. rtext]
                 if spec then
                     ctx.spaced = true
                     break
@@ -144,7 +143,7 @@ local function fixed_adjacent_should(atype, ctx, check)
     ctx.closer = spec.closer.text
     ctx.spec = setmetatable({}, { __index = spec })
 
-    return U.ternary(check, M.check_conditions(atype, ctx), true)
+    return true
 end
 
 ---Check if text adjacent to the cursor matches one of the specs.
@@ -156,8 +155,31 @@ end
 function M.adjacent_should(atype, ctx, check)
     ---@cast check -?
     check = check == nil and true or check
-    return regex_adjacent_should(atype, ctx, check)
-        or fixed_adjacent_should(atype, ctx, check)
+
+    local found = regex_adjacent_find_spec(atype, ctx)
+    if not found then
+        found = fixed_adjacent_find_spec(atype, ctx)
+    end
+
+    if not found then
+        return false
+    end
+
+    ---@cast ctx PairContext
+    if
+        not (atype == ACTION.cr and { ctx.spec.cr.enable } or {
+            ctx.spec[atype][ctx.mode].enable,
+        })[1]
+    then -- action not enabled
+        return false
+    end
+
+    if ctx.spaced and not ctx.spec.space[ctx.mode].enable then
+        -- spaced but space action not enabled
+        return false
+    end
+
+    return U.ternary(check, M.check_conditions(atype, ctx), true)
 end
 
 ---Delete by modifying context.

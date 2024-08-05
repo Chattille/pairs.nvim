@@ -54,6 +54,7 @@ return M
 ---@alias PairActionFullSpec table<PairModeType, PairFullCond>
 ---@alias LengthSet integer[]
 ---@alias SpecSet table<string, PairFullSpec>
+---@alias LengthRecord table<PairModeType, LengthSet>
 
 ---@class ExprOpts
 ---@field mode string[]
@@ -69,22 +70,11 @@ return M
 ---
 ---@class SpecRecord
 ---@field insert table<PairModeType, table<string, table<PairInsertType, PairFullSpec[]>>>
----@field del table<PairModeType, SpecSet>
----@field cr SpecSet
----@field space table<PairModeType, SpecSet>
+---@field adjacent SpecSet
 
 ---@class RegexRecord
 ---@field insert table<PairModeType, table<PairInsertType, PairFullSpec[]>>
----@field del table<PairModeType, PairFullSpec[]>
----@field cr PairFullSpec[]
----@field space table<PairModeType, PairFullSpec[]>
-
----Record length of opener and/or closer.
----
----@class LengthRecord
----@field del table<PairModeType, LengthSet>
----@field cr LengthSet
----@field space table<PairModeType, LengthSet>
+---@field adjacent PairFullSpec[]
 
 ---@class DefaultCondition
 ---@field pair table<PairModeType, ActionCondition[]>

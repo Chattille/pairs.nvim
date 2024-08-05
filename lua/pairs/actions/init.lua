@@ -26,7 +26,7 @@ local KEY = T.KEY
 ---@param key string
 ---@param act PairInsertType
 local function record_to(spec, mode, key, act)
-    if key == '' and spec.regex then
+    if spec.regex then
         table.insert(st.state.regex.insert[mode][act], spec)
         return
     end
@@ -56,43 +56,26 @@ local function record(spec)
     end
 
     -- adjacent pairs
-    local pair = spec.opener.text .. spec.closer.text
-    local z = spec.regex and 0
-        or U.cantor(#spec.opener.text, #spec.closer.text)
+    if spec.regex then
+        table.insert(st.state.regex.adjacent, spec)
+    else
+        local pair = spec.opener.text .. spec.closer.text
+        local z = spec.regex and 0
+            or U.cantor(#spec.opener.text, #spec.closer.text)
 
-    for _, action in ipairs { ACTION.del, ACTION.space } do
+        st.state.specs.adjacent[pair] = spec
         for _, mode in ipairs { 'i', 'c' } do
-            if spec[action][mode].enable then
-                if spec.regex then
-                    table.insert(st.state.regex[action][mode], spec)
-                else
-                    st.state.specs[action][mode][pair] = spec
-                end
-
-                if
-                    not spec.regex
-                    and not vim.list_contains(
-                        st.state.lengths[action][mode],
-                        z
-                    )
-                then
-                    table.insert(st.state.lengths[action][mode], z)
-                end
+            if
+                not spec.regex
+                and not vim.list_contains(st.state.lengths[mode], z)
+                and ( -- exclude if all actions are disabled for `mode`
+                    spec.del[mode].enable
+                    or spec.space[mode].enable
+                    or U.ternary(mode == 'i', spec.cr.enable, false)
+                )
+            then
+                table.insert(st.state.lengths[mode], z)
             end
-        end
-    end
-
-    if spec.cr.enable then
-        if spec.regex then
-            table.insert(st.state.regex.cr, spec)
-        else
-            st.state.specs.cr[pair] = spec
-        end
-
-        if
-            not spec.regex and not vim.list_contains(st.state.lengths.cr, z)
-        then
-            table.insert(st.state.lengths.cr, z)
         end
     end
 end

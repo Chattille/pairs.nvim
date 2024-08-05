@@ -136,7 +136,7 @@ return {
         filetype = { 'markdown', 'pandoc', 'rmarkdown', 'rmd', 'vimwiki' },
     },
     {
-        opener = '```.*',
+        opener = '```.+',
         closer = '```',
         regex = true,
         filetype = { 'markdown', 'pandoc', 'rmarkdown', 'rmd', 'vimwiki' },

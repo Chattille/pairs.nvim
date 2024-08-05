@@ -13,9 +13,9 @@ local M = {}
 
 ---@param prevl string
 ---@param nextl string
----@return boolean
+---@return boolean?
 local function regex_inverse_cr_triggered(prevl, nextl)
-    for _, spec in ipairs(st.state.regex.cr) do
+    for _, spec in ipairs(st.state.regex.adjacent) do
         local os, oe = prevl:find(spec.opener.text .. '$')
         if os and oe then
             local opener = prevl:sub(os, oe)
@@ -23,28 +23,28 @@ local function regex_inverse_cr_triggered(prevl, nextl)
             if U.has_sub(spec.closer.text) then
                 local closer = opener:gsub(spec.opener.text, spec.closer.text)
                 if nextl:sub(1, #closer) == closer then
-                    return true
+                    return spec.cr.enable
                 end
             elseif nextl:match('^' .. spec.closer.text) then
-                return true
+                return spec.cr.enable
             end
         end
     end
-
-    return false
 end
 
 ---@param prevl string
 ---@param nextl string
+---@param mode PairModeType
 ---@return boolean
-local function fixed_inverse_cr_triggered(prevl, nextl)
-    for _, z in ipairs(st.state.lengths.cr) do
+local function fixed_inverse_cr_triggered(prevl, nextl, mode)
+    for _, z in ipairs(st.state.lengths[mode]) do
         local olen, clen = U.uncantor(z)
         local ltext = prevl:sub(-olen)
         local rtext = nextl:sub(1, clen)
 
-        if st.state.specs.cr[ltext .. rtext] then
-            return true
+        local spec = st.state.specs.adjacent[ltext .. rtext]
+        if spec then
+            return spec.cr.enable
         end
     end
 
@@ -72,8 +72,12 @@ local function inverse_cr_triggered(ctx)
     local nextl =
         vim.trim(vim.api.nvim_buf_get_lines(0, ctx.row, ctx.row + 1, true)[1])
 
-    return regex_inverse_cr_triggered(prevl, nextl)
-        or fixed_inverse_cr_triggered(prevl, nextl)
+    local succ = regex_inverse_cr_triggered(prevl, nextl)
+    if succ == nil then
+        return fixed_inverse_cr_triggered(prevl, nextl, ctx.mode)
+    else
+        return succ
+    end
 end
 
 ---@return string

@@ -11,25 +11,17 @@ M.state = nil
 function M.new_state()
     ---@type State
     return {
-        lengths = {
-            del = { i = {}, c = {} },
-            cr = {},
-            space = { i = {}, c = {} },
-        },
+        lengths = { i = {}, c = {} },
         regex = {
             insert = {
                 i = { close = {}, pair = {} },
                 c = { close = {}, pair = {} },
             },
-            del = { i = {}, c = {} },
-            cr = {},
-            space = { i = {}, c = {} },
+            adjacent = {},
         },
         specs = {
             insert = { i = {}, c = {} },
-            del = { i = {}, c = {} },
-            cr = {},
-            space = { i = {}, c = {} },
+            adjacent = {},
         },
         inspos = { 1, 0 },
     }
