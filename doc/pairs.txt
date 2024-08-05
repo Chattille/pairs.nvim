@@ -289,6 +289,9 @@ Pairs are defined in the form of specs:
         -- prefix the filetype with a `-` to disable it
         filetype = { 'markdown', 'html' },
 
+	-- specify whether the pair is interpreted as Lua pattern
+	regex = false,
+
         -- specify whether the pair can be nested
         -- used to check inline balance
         nestable = false,
@@ -330,6 +333,30 @@ PairSpec.filetype ~
 >lua
         { filetype = '-markdown' } -- disable the pair in MarkDown files
 <
+                                                          *pairs-PairSpec.regex*
+PairSpec.regex ~
+    type: boolean
+
+    Whether or not |PairSpec.opener| and |PairSpec.closer| are interpreted as
+    Lua pattern.
+
+    When |PairSpec.regex| is `true`, substitute pattern (`%1` to `%9`) can be
+    used in |PairSpec.closer| to refer to capture groups in |PairSpec.opener|:
+>lua
+        {
+	    opener = '%[(=*)%[',
+	    closer = '%]%1%]',
+	    regex = true,
+	    filetype = 'lua',
+	}
+<
+    will result in `[[]]`, `[=[]=]`, `[==[]==]`, etc.
+
+    It is necessary to `%`-escape special characters in |PairSpec.closer|.
+
+    Currently, regex pairs only work in Insert mode, unless there is a mapping
+    set to the triggering key.
+
                                                        *pairs-PairSpec.nestable*
 PairSpec.nestable ~
     type: `boolean`
