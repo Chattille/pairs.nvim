@@ -87,6 +87,9 @@ return {
         closer = '%]%1%]',
         regex = true,
         filetype = 'lua',
+        pair = true,
+        close = true,
+        del = true,
     },
 
     {
