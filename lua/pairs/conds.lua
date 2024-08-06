@@ -42,9 +42,9 @@ function M.check_balance(ctx)
 
         if scanner:eat [[\]] then
             escaped = true
-        elseif scanner:eat(ctx.spec.opener.text) then
+        elseif scanner:eat(ctx.opener) then
             balance = balance + 1
-        elseif scanner:eat(ctx.spec.closer.text) then
+        elseif scanner:eat(ctx.closer) then
             balance = balance - 1
         else
             scanner:step()

@@ -18,7 +18,7 @@ end
 ---@param char string
 ---@return boolean
 function Scanner:eat(char)
-    if not self:isover() and char == self:peek(#char) then
+    if not self:isover() and char ~= '' and char == self:peek(#char) then
         self:step(#char)
         return true
     end
