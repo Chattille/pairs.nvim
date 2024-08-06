@@ -454,6 +454,8 @@ Config for each pair action can be:
                • mode: (string) `'i'` for Insert and `'c'` for Cmdline.
                • row: (integer) 1-based cursor row.
                • col: (integer) 1-based cursor column.
+               • opener: (string) Actual opening part. Useful for regex pairs.
+               • closer: (string) Actual closing part. Useful for regex pairs.
                • line: (string) Current line content.
                • before: (string) Text before the cursor.
                • after: (string) Text after the cursor.
